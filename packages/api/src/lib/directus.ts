@@ -177,3 +177,4 @@ export async function getTotalLessonsForCourse(courseId: string): Promise<number
     return 0;
   }
 }
+

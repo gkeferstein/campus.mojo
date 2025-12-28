@@ -65,6 +65,7 @@ docker network create mojo-campus-network
 docker network connect mojo-campus-network mojo-traefik
 ```
 
-**Zuletzt aktualisiert:** $(date +%Y-%m-%d)
+**Zuletzt aktualisiert:** 2024-12-28
+
 
 

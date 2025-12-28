@@ -227,3 +227,4 @@ export function Sidebar({ course, currentLessonSlug }: SidebarProps) {
     </>
   );
 }
+

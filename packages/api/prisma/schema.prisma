@@ -212,3 +212,4 @@ model UserVariable {
   @@index([userId, toolSlug])
   @@map("user_variables")
 }
+
