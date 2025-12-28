@@ -166,3 +166,14 @@ export async function getQuizByLessonId(lessonId: string): Promise<Quiz | null> 
   return quizzes[0] || null;
 }
 
+
+export async function getTotalLessonsForCourse(courseId: string): Promise<number> {
+  try {
+    const lessons = await directusFetch<{ id: string }[]>(
+      `/items/lessons?filter[module_id][course_id][_eq]=${courseId}&fields=id`
+    );
+    return lessons.length;
+  } catch {
+    return 0;
+  }
+}

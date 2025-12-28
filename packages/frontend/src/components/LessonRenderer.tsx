@@ -4,16 +4,19 @@ import { motion } from "framer-motion";
 import { Lightbulb, AlertTriangle, Info, Code, Play } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { ToolRenderer } from "@/components/tools";
 
 export interface ContentBlock {
   type: "heading" | "paragraph" | "callout" | "code_block" | "image" | 
-        "video_embed" | "divider" | "card_grid" | "pro_tip" | "quiz_embed";
+        "video_embed" | "divider" | "card_grid" | "pro_tip" | "quiz_embed" | "interactive_tool";
   data: Record<string, unknown>;
 }
 
 interface LessonRendererProps {
   blocks: ContentBlock[];
   className?: string;
+  lessonId?: string;
+  courseId?: string;
 }
 
 const blockVariants = {
@@ -21,7 +24,7 @@ const blockVariants = {
   visible: { opacity: 1, y: 0 },
 };
 
-export function LessonRenderer({ blocks, className }: LessonRendererProps) {
+export function LessonRenderer({ blocks, className, lessonId, courseId }: LessonRendererProps) {
   return (
     <div className={cn("space-y-6", className)}>
       {blocks.map((block, index) => (
@@ -32,14 +35,18 @@ export function LessonRenderer({ blocks, className }: LessonRendererProps) {
           animate="visible"
           transition={{ delay: index * 0.1 }}
         >
-          <BlockRenderer block={block} />
+          <BlockRenderer block={block} lessonId={lessonId} courseId={courseId} />
         </motion.div>
       ))}
     </div>
   );
 }
 
-function BlockRenderer({ block }: { block: ContentBlock }) {
+function BlockRenderer({ block, lessonId, courseId }: { 
+  block: ContentBlock; 
+  lessonId?: string;
+  courseId?: string;
+}) {
   switch (block.type) {
     case "heading":
       return <HeadingBlock data={block.data} />;
@@ -61,6 +68,8 @@ function BlockRenderer({ block }: { block: ContentBlock }) {
       return <ProTipBlock data={block.data} />;
     case "quiz_embed":
       return <QuizEmbedBlock data={block.data} />;
+    case "interactive_tool":
+      return <InteractiveToolBlock data={block.data} lessonId={lessonId} courseId={courseId} />;
     default:
       return null;
   }
@@ -170,7 +179,6 @@ function VideoBlock({ data }: { data: Record<string, unknown> }) {
   const url = data.url as string;
   const title = data.title as string;
 
-  // Extract video ID for YouTube/Vimeo
   const getEmbedUrl = (url: string) => {
     if (url.includes("youtube.com") || url.includes("youtu.be")) {
       const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/);
@@ -254,4 +262,20 @@ function QuizEmbedBlock({ data }: { data: Record<string, unknown> }) {
   );
 }
 
+function InteractiveToolBlock({ data, lessonId, courseId }: { 
+  data: Record<string, unknown>;
+  lessonId?: string;
+  courseId?: string;
+}) {
+  const toolSlug = data.toolSlug as string;
+  const config = data.config as Record<string, unknown> | undefined;
 
+  return (
+    <ToolRenderer 
+      toolSlug={toolSlug} 
+      config={config}
+      lessonId={lessonId}
+      courseId={courseId}
+    />
+  );
+}

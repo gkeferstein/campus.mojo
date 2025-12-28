@@ -10,15 +10,13 @@ import { meRoutes } from './routes/me.js';
 import { coursesRoutes } from './routes/courses.js';
 import { lessonsRoutes } from './routes/lessons.js';
 import { quizRoutes } from './routes/quiz.js';
+import { userVariablesRoutes } from './routes/user-variables.js';
 import { webhooksRoutes } from './routes/webhooks.js';
 import { errorHandler } from './middleware/error-handler.js';
 
 const fastify = Fastify({
   logger: {
     level: process.env.LOG_LEVEL || 'info',
-    transport: process.env.NODE_ENV === 'development' 
-      ? { target: 'pino-pretty' } 
-      : undefined,
   },
 });
 
@@ -29,7 +27,7 @@ await fastify.register(cors, {
 });
 
 await fastify.register(helmet, {
-  contentSecurityPolicy: false, // Handled by frontend
+  contentSecurityPolicy: false,
 });
 
 await fastify.register(jwt, {
@@ -54,6 +52,7 @@ await fastify.register(meRoutes);
 await fastify.register(coursesRoutes);
 await fastify.register(lessonsRoutes);
 await fastify.register(quizRoutes);
+await fastify.register(userVariablesRoutes);
 await fastify.register(webhooksRoutes);
 
 // Start server
@@ -73,5 +72,3 @@ const start = async () => {
 start();
 
 export { fastify };
-
-

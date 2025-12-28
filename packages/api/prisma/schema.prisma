@@ -64,6 +64,7 @@ model User {
   lessonProgress  LessonProgress[]
   quizAttempts    QuizAttempt[]
   refreshTokens   RefreshToken[]
+  userVariables   UserVariable[]
 
   @@map("users")
 }
@@ -189,3 +190,25 @@ model WebhookEvent {
 }
 
 
+
+// ============================================
+// User Variables (for Interactive Tools)
+// ============================================
+
+model UserVariable {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  toolSlug  String   @map("tool_slug")    // e.g. "vo2max-calculator"
+  key       String                         // e.g. "age", "steps", "startBand"
+  value     Json                           // Flexible value storage
+  lessonId  String?  @map("lesson_id")    // Where it was set (optional)
+  courseId  String?  @map("course_id")    // Course context (optional)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, toolSlug, key])
+  @@index([userId, toolSlug])
+  @@map("user_variables")
+}

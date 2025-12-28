@@ -2,7 +2,7 @@ import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { authenticate } from '../middleware/auth.js';
 import { prisma } from '../lib/prisma.js';
-import { getLessonBySlug, getLessonById } from '../lib/directus.js';
+import { getLessonBySlug, getLessonById, getTotalLessonsForCourse } from '../lib/directus.js';
 
 const completeSchema = z.object({
   timeSpentSeconds: z.number().int().min(0).optional(),
@@ -159,11 +159,9 @@ export async function lessonsRoutes(fastify: FastifyInstance): Promise<void> {
 }
 
 async function updateCourseProgress(userId: string, courseId: string): Promise<void> {
-  // Count total and completed lessons for this course
+  // Get total lessons from Directus and completed lessons from DB
   const [totalLessons, completedLessons] = await Promise.all([
-    prisma.lessonProgress.count({
-      where: { userId, courseId },
-    }),
+    getTotalLessonsForCourse(courseId),
     prisma.lessonProgress.count({
       where: { userId, courseId, completed: true },
     }),
@@ -173,11 +171,17 @@ async function updateCourseProgress(userId: string, courseId: string): Promise<v
     ? Math.round((completedLessons / totalLessons) * 100) 
     : 0;
 
-  await prisma.enrollment.update({
+  await prisma.enrollment.upsert({
     where: {
       userId_courseId: { userId, courseId },
     },
-    data: {
+    create: {
+      userId,
+      courseId,
+      progressPercent,
+      completedAt: progressPercent === 100 ? new Date() : null,
+    },
+    update: {
       progressPercent,
       completedAt: progressPercent === 100 ? new Date() : null,
     },
