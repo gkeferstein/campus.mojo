@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 
 interface User {
@@ -26,6 +27,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -87,6 +89,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem("campus_token");
     setToken(null);
     setUser(null);
+    router.push("/login");
   };
 
   return (
@@ -114,5 +117,3 @@ export function useAuth() {
   }
   return context;
 }
-
-

@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   ChevronDown, 
@@ -11,7 +10,8 @@ import {
   Circle, 
   Clock,
   Menu,
-  X
+  X,
+  Home
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
@@ -77,6 +77,14 @@ export function Sidebar({ course, currentLessonSlug }: SidebarProps) {
     <>
       {/* Course Header */}
       <div className="p-4 border-b border-border">
+        <Link 
+          href="/dashboard" 
+          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
+        >
+          <Home className="w-4 h-4" />
+          Dashboard
+        </Link>
+        
         <Link href={`/courses/${course.slug}`} className="block">
           <h2 className="font-bold text-lg text-foreground hover:text-primary transition-colors">
             {course.title}
@@ -219,5 +227,3 @@ export function Sidebar({ course, currentLessonSlug }: SidebarProps) {
     </>
   );
 }
-
-

@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Clock, CheckCircle2, ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
+import { Clock, CheckCircle2, ArrowLeft, ArrowRight, Loader2, ChevronRight, Home } from "lucide-react";
 import { useAuth } from "@/providers/AuthProvider";
 import { useProgress } from "@/providers/ProgressProvider";
 import { api } from "@/lib/api";
@@ -144,13 +144,27 @@ export default function LessonPage() {
       {/* Main Content */}
       <main className="flex-1 lg:ml-0">
         <div className="max-w-3xl mx-auto px-4 py-8 lg:py-12">
+          {/* Breadcrumb Navigation */}
+          <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
+            <Link href="/dashboard" className="flex items-center gap-1 hover:text-foreground transition-colors">
+              <Home className="w-4 h-4" />
+              <span className="hidden sm:inline">Dashboard</span>
+            </Link>
+            <ChevronRight className="w-4 h-4" />
+            <Link href={`/courses/${course.slug}`} className="hover:text-foreground transition-colors truncate max-w-[150px] sm:max-w-none">
+              {course.title}
+            </Link>
+            <ChevronRight className="w-4 h-4 hidden sm:block" />
+            <span className="text-foreground truncate hidden sm:block">{lesson.title}</span>
+          </nav>
+
           {/* Lesson Header */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="mb-8"
           >
-            {/* Breadcrumb & Chips */}
+            {/* Lesson Chips */}
             <div className="flex flex-wrap items-center gap-2 mb-4">
               <span className="px-2 py-1 bg-primary/10 text-primary text-xs font-medium rounded">
                 Lektion {currentIndex}
@@ -279,5 +293,3 @@ export default function LessonPage() {
     </div>
   );
 }
-
-
