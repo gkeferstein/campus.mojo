@@ -1,0 +1,162 @@
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:16-alpine
+    container_name: campus-db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-campus}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-campus_lms}
+    volumes:
+      - campus-db-data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-campus}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - mojo-campus-network
+
+  # Directus CMS
+  directus:
+    image: directus/directus:10.13
+    container_name: campus-directus
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      KEY: ${DIRECTUS_KEY}
+      SECRET: ${DIRECTUS_SECRET}
+      ADMIN_EMAIL: ${DIRECTUS_ADMIN_EMAIL:-admin@mojo-institut.de}
+      ADMIN_PASSWORD: ${DIRECTUS_ADMIN_PASSWORD}
+      DB_CLIENT: pg
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_DATABASE: ${POSTGRES_DB:-campus_lms}
+      DB_USER: ${POSTGRES_USER:-campus}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      CORS_ENABLED: "true"
+      CORS_ORIGIN: "true"
+      PUBLIC_URL: ${DIRECTUS_PUBLIC_URL:-https://campus.mojo-institut.de/cms}
+    volumes:
+      - campus-directus-uploads:/directus/uploads
+      - ./directus/extensions:/directus/extensions:ro
+      - ./directus/snapshots:/directus/snapshots
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:8055/server/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - mojo-campus-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=mojo-campus-network"
+      # Directus CMS Router
+      - "traefik.http.routers.campus-directus.rule=Host(`campus.mojo-institut.de`) && PathPrefix(`/cms`)"
+      - "traefik.http.routers.campus-directus.entrypoints=websecure"
+      - "traefik.http.routers.campus-directus.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.campus-directus.service=campus-directus"
+      - "traefik.http.routers.campus-directus.priority=20"
+      # Strip /cms prefix
+      - "traefik.http.routers.campus-directus.middlewares=campus-directus-strip"
+      - "traefik.http.middlewares.campus-directus-strip.stripprefix.prefixes=/cms"
+      # Service
+      - "traefik.http.services.campus-directus.loadbalancer.server.port=8055"
+
+  # LMS API (Fastify)
+  api:
+    build:
+      context: ./packages/api
+      dockerfile: Dockerfile
+    container_name: campus-api
+    depends_on:
+      db:
+        condition: service_healthy
+      directus:
+        condition: service_started
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: 3001
+      DATABASE_URL: postgresql://${POSTGRES_USER:-campus}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-campus_lms}?schema=lms
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      DIRECTUS_URL: http://directus:8055
+      DIRECTUS_TOKEN: ${DIRECTUS_ADMIN_TOKEN}
+      WEBHOOK_SECRET: ${WEBHOOK_SECRET}
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+    networks:
+      - mojo-campus-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=mojo-campus-network"
+      # API Router
+      - "traefik.http.routers.campus-api.rule=Host(`campus.mojo-institut.de`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.campus-api.entrypoints=websecure"
+      - "traefik.http.routers.campus-api.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.campus-api.service=campus-api"
+      - "traefik.http.routers.campus-api.priority=15"
+      # Strip /api prefix
+      - "traefik.http.routers.campus-api.middlewares=campus-api-strip"
+      - "traefik.http.middlewares.campus-api-strip.stripprefix.prefixes=/api"
+      # Service
+      - "traefik.http.services.campus-api.loadbalancer.server.port=3001"
+
+  # Next.js Frontend
+  frontend:
+    build:
+      context: ./packages/frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://campus.mojo-institut.de/api}
+        NEXT_PUBLIC_DIRECTUS_URL: ${NEXT_PUBLIC_DIRECTUS_URL:-https://campus.mojo-institut.de/cms}
+    container_name: campus-frontend
+    depends_on:
+      api:
+        condition: service_started
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://campus.mojo-institut.de/api}
+      NEXT_PUBLIC_DIRECTUS_URL: ${NEXT_PUBLIC_DIRECTUS_URL:-https://campus.mojo-institut.de/cms}
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - mojo-campus-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=mojo-campus-network"
+      # Frontend Router (catch-all, lowest priority)
+      - "traefik.http.routers.campus-frontend.rule=Host(`campus.mojo-institut.de`)"
+      - "traefik.http.routers.campus-frontend.entrypoints=websecure"
+      - "traefik.http.routers.campus-frontend.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.campus-frontend.service=campus-frontend"
+      - "traefik.http.routers.campus-frontend.priority=1"
+      # Service
+      - "traefik.http.services.campus-frontend.loadbalancer.server.port=3000"
+
+volumes:
+  campus-db-data:
+    name: campus-db-data
+  campus-directus-uploads:
+    name: campus-directus-uploads
+
+networks:
+  mojo-campus-network:
+    name: mojo-campus-network
+    external: true
+

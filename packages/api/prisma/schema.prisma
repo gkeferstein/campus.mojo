@@ -1,0 +1,190 @@
+// Campus.mojo LMS Database Schema
+// Run: npx prisma migrate dev --name init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// Multi-tenancy
+// ============================================
+
+model Tenant {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  users       User[]
+  memberships TenantMembership[]
+  entitlements Entitlement[]
+
+  @@map("tenants")
+}
+
+model TenantMembership {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  tenantId  String   @map("tenant_id")
+  role      String   @default("member") // admin, instructor, member
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tenantId])
+  @@map("tenant_memberships")
+}
+
+// ============================================
+// Users & Authentication
+// ============================================
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  firstName    String?  @map("first_name")
+  lastName     String?  @map("last_name")
+  avatarUrl    String?  @map("avatar_url")
+  tenantId     String?  @map("tenant_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  tenant          Tenant?            @relation(fields: [tenantId], references: [id])
+  memberships     TenantMembership[]
+  entitlements    Entitlement[]
+  enrollments     Enrollment[]
+  lessonProgress  LessonProgress[]
+  quizAttempts    QuizAttempt[]
+  refreshTokens   RefreshToken[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  token     String   @unique
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+// ============================================
+// Entitlements (from payments/CRM webhooks)
+// ============================================
+
+model Entitlement {
+  id         String    @id @default(uuid())
+  userId     String    @map("user_id")
+  tenantId   String?   @map("tenant_id")
+  courseId   String    @map("course_id") // Directus course ID
+  source     String    // payment, manual, webhook, coupon
+  sourceRef  String?   @map("source_ref") // payment ID, coupon code, etc.
+  validFrom  DateTime  @default(now()) @map("valid_from")
+  validUntil DateTime? @map("valid_until") // null = lifetime
+  createdAt  DateTime  @default(now()) @map("created_at")
+  revokedAt  DateTime? @map("revoked_at")
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant? @relation(fields: [tenantId], references: [id])
+
+  @@unique([userId, courseId])
+  @@map("entitlements")
+}
+
+// ============================================
+// Course Progress
+// ============================================
+
+model Enrollment {
+  id              String   @id @default(uuid())
+  userId          String   @map("user_id")
+  courseId        String   @map("course_id") // Directus course ID
+  progressPercent Int      @default(0) @map("progress_percent")
+  enrolledAt      DateTime @default(now()) @map("enrolled_at")
+  completedAt     DateTime? @map("completed_at")
+  lastAccessedAt  DateTime @default(now()) @map("last_accessed_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+  @@map("enrollments")
+}
+
+model LessonProgress {
+  id               String    @id @default(uuid())
+  userId           String    @map("user_id")
+  lessonId         String    @map("lesson_id") // Directus lesson ID
+  courseId         String    @map("course_id") // For easier queries
+  completed        Boolean   @default(false)
+  timeSpentSeconds Int       @default(0) @map("time_spent_seconds")
+  completedAt      DateTime? @map("completed_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
+  @@map("lesson_progress")
+}
+
+// ============================================
+// Quiz Attempts
+// ============================================
+
+model QuizAttempt {
+  id          String    @id @default(uuid())
+  userId      String    @map("user_id")
+  quizId      String    @map("quiz_id") // Directus quiz ID
+  score       Int?      // Percentage 0-100
+  passed      Boolean?
+  startedAt   DateTime  @default(now()) @map("started_at")
+  completedAt DateTime? @map("completed_at")
+
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  responses QuizResponse[]
+
+  @@map("quiz_attempts")
+}
+
+model QuizResponse {
+  id         String  @id @default(uuid())
+  attemptId  String  @map("attempt_id")
+  questionId String  @map("question_id") // Directus question ID
+  answer     Json    // Flexible answer format
+  correct    Boolean?
+
+  attempt QuizAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+
+  @@unique([attemptId, questionId])
+  @@map("quiz_responses")
+}
+
+// ============================================
+// Webhook Events (for debugging/audit)
+// ============================================
+
+model WebhookEvent {
+  id          String   @id @default(uuid())
+  source      String   // payments, crm
+  eventType   String   @map("event_type")
+  payload     Json
+  processedAt DateTime? @map("processed_at")
+  error       String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([source, eventType])
+  @@map("webhook_events")
+}
+
