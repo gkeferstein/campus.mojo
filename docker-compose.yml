@@ -115,8 +115,8 @@ services:
   # Next.js Frontend
   frontend:
     build:
-      context: ./packages/frontend
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: campus.mojo/packages/frontend/Dockerfile
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://campus.mojo-institut.de/api}
         NEXT_PUBLIC_DIRECTUS_URL: ${NEXT_PUBLIC_DIRECTUS_URL:-https://campus.mojo-institut.de/cms}
