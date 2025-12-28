@@ -42,3 +42,4 @@ export function errorHandler(
   reply.status(statusCode).send({ error: message });
 }
 
+

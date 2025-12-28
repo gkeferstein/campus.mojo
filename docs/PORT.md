@@ -67,3 +67,4 @@ docker network connect mojo-campus-network mojo-traefik
 
 **Zuletzt aktualisiert:** $(date +%Y-%m-%d)
 
+

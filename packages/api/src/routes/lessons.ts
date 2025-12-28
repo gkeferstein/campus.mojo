@@ -2,7 +2,7 @@ import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { authenticate } from '../middleware/auth.js';
 import { prisma } from '../lib/prisma.js';
-import { getLessonBySlug } from '../lib/directus.js';
+import { getLessonBySlug, getLessonById } from '../lib/directus.js';
 
 const completeSchema = z.object({
   timeSpentSeconds: z.number().int().min(0).optional(),
@@ -79,16 +79,20 @@ export async function lessonsRoutes(fastify: FastifyInstance): Promise<void> {
     });
 
     // If we don't have progress yet, we need to get the course ID from Directus
-    // For now, we'll require the courseId in the request or use existing progress
     let courseId = existingProgress?.courseId;
 
     if (!courseId) {
-      // Try to extract from URL pattern or require it
-      // In a real app, you'd fetch from Directus
-      return reply.status(400).send({ 
-        error: 'Course ID required for first progress record',
-        hint: 'Access the lesson through the course first',
-      });
+      // Fetch lesson from Directus to get course_id
+      const lesson = await getLessonById(lessonId);
+      if (!lesson) {
+        return reply.status(404).send({ error: 'Lesson not found' });
+      }
+      courseId = lesson.course_id;
+      if (!courseId) {
+        return reply.status(400).send({ 
+          error: 'Could not determine course for this lesson',
+        });
+      }
     }
 
     // Update or create progress
@@ -179,4 +183,3 @@ async function updateCourseProgress(userId: string, courseId: string): Promise<v
     },
   });
 }
-

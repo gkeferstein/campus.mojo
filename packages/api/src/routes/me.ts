@@ -99,3 +99,4 @@ export async function meRoutes(fastify: FastifyInstance): Promise<void> {
   });
 }
 
+

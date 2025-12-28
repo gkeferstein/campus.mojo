@@ -134,6 +134,21 @@ export async function getLessonBySlug(slug: string): Promise<Lesson | null> {
   return lessons[0] || null;
 }
 
+export async function getLessonById(id: string): Promise<(Lesson & { course_id?: string }) | null> {
+  try {
+    const lesson = await directusFetch<Lesson & { module_id: { course_id: string } }>(
+      `/items/lessons/${id}?fields=*,module_id.course_id`
+    );
+    // Extract course_id from nested module_id object
+    const courseId = typeof lesson.module_id === 'object' 
+      ? (lesson.module_id as { course_id: string }).course_id 
+      : undefined;
+    return { ...lesson, course_id: courseId };
+  } catch {
+    return null;
+  }
+}
+
 export async function getQuizById(quizId: string): Promise<Quiz | null> {
   try {
     return await directusFetch<Quiz>(

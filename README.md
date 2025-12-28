@@ -285,3 +285,4 @@ npx prisma migrate dev --name <migration-name>
 
 **Zuletzt aktualisiert:** 2024-12-28
 
+
