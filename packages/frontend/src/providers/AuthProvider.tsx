@@ -1,11 +1,12 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useAuth as useClerkAuth, useUser } from "@clerk/nextjs";
 import { api } from "@/lib/api";
 
 interface User {
   id: string;
+  clerkUserId: string;
   email: string;
   firstName?: string;
   lastName?: string;
@@ -18,90 +19,75 @@ interface AuthContextType {
   token: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, firstName?: string, lastName?: string) => Promise<void>;
-  logout: () => void;
   refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const router = useRouter();
+  const { isLoaded, isSignedIn, getToken } = useClerkAuth();
+  const { user: clerkUser } = useUser();
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const refreshUser = useCallback(async () => {
-    const storedToken = localStorage.getItem("campus_token");
-    if (!storedToken) {
+    if (!isLoaded) return;
+
+    if (!isSignedIn) {
+      setUser(null);
+      setToken(null);
       setIsLoading(false);
       return;
     }
 
     try {
-      setToken(storedToken);
-      const userData = await api.get<User>("/me", storedToken);
-      setUser(userData);
-    } catch {
-      localStorage.removeItem("campus_token");
-      setToken(null);
-      setUser(null);
+      // Get Clerk JWT token
+      const clerkToken = await getToken();
+      setToken(clerkToken);
+
+      if (clerkToken) {
+        // Fetch user data from our API
+        const userData = await api.get<User>("/me", clerkToken);
+        setUser(userData);
+      }
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      // User might not exist in our DB yet (webhook delay)
+      // Create a basic user object from Clerk data
+      if (clerkUser) {
+        setUser({
+          id: "", // Will be set once synced
+          clerkUserId: clerkUser.id,
+          email: clerkUser.primaryEmailAddress?.emailAddress || "",
+          firstName: clerkUser.firstName || undefined,
+          lastName: clerkUser.lastName || undefined,
+          avatarUrl: clerkUser.imageUrl || undefined,
+        });
+      }
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [isLoaded, isSignedIn, getToken, clerkUser]);
 
   useEffect(() => {
     refreshUser();
   }, [refreshUser]);
 
-  const login = async (email: string, password: string) => {
-    const response = await api.post<{ user: User; token: string }>("/auth/login", {
-      email,
-      password,
-    });
-
-    localStorage.setItem("campus_token", response.token);
-    setToken(response.token);
-    setUser(response.user);
-  };
-
-  const register = async (
-    email: string,
-    password: string,
-    firstName?: string,
-    lastName?: string
-  ) => {
-    const response = await api.post<{ user: User; token: string }>("/auth/register", {
-      email,
-      password,
-      firstName,
-      lastName,
-    });
-
-    localStorage.setItem("campus_token", response.token);
-    setToken(response.token);
-    setUser(response.user);
-  };
-
-  const logout = () => {
-    localStorage.removeItem("campus_token");
-    setToken(null);
-    setUser(null);
-    router.push("/login");
-  };
+  // Re-fetch when Clerk auth state changes
+  useEffect(() => {
+    if (isLoaded && isSignedIn) {
+      refreshUser();
+    }
+  }, [isLoaded, isSignedIn, refreshUser]);
 
   return (
     <AuthContext.Provider
       value={{
         user,
         token,
-        isLoading,
-        isAuthenticated: !!user,
-        login,
-        register,
-        logout,
+        isLoading: !isLoaded || isLoading,
+        isAuthenticated: isSignedIn || false,
         refreshUser,
       }}
     >
@@ -117,4 +103,3 @@ export function useAuth() {
   }
   return context;
 }
-

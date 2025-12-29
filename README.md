@@ -78,7 +78,7 @@ docker network connect mojo-campus-network mojo-traefik
 
 ```bash
 # Development-Modus (mit Port-Expose)
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+docker compose up -d
 
 # Logs beobachten
 docker compose logs -f
@@ -118,7 +118,6 @@ node scripts/create-test-user.js
 ```
 campus.mojo/
 ├── docker-compose.yml        # Haupt-Orchestrierung
-├── docker-compose.dev.yml    # Dev-Override
 ├── .env.example              # Umgebungsvariablen Template
 ├── packages/
 │   ├── api/                  # Fastify LMS API

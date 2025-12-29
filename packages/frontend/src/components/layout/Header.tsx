@@ -3,6 +3,8 @@
 /**
  * Header Component
  * Uses MOJO Design System navigation components for the topbar
+ * 
+ * App entitlements are loaded dynamically from the payments.mojo API
  */
 
 import {
@@ -10,46 +12,73 @@ import {
   MojoUserMenu,
   TenantSwitcher,
   MojoLogo,
+  MOJO_APPS,
+  filterAppsByEntitlements,
 } from '@mojo/design';
 import { useAuth } from '@/providers/AuthProvider';
 import { useRouter } from 'next/navigation';
-import type { Tenant, MojoUser, MojoApp } from '@mojo/design';
-import { useMemo } from 'react';
-import {
-  GraduationCap,
-  User,
-  CreditCard,
-  QrCode,
-  Wallet,
-  Users,
-  Workflow,
-  Mail,
-  Palette,
-} from 'lucide-react';
+import type { Tenant, MojoUser } from '@mojo/design';
+import { useMemo, useEffect, useState } from 'react';
 
-// MOJO Platform Apps (matching design.mojo/packages/design/src/navigation/apps.ts)
-const MOJO_APPS: MojoApp[] = [
-  { id: 'campus', name: 'campus.mojo', shortName: 'Campus', url: 'https://campus.mojo-institut.de', icon: GraduationCap, category: 'user', description: 'Kurse, Lerninhalte und Zertifikate' },
-  { id: 'account', name: 'account.mojo', shortName: 'Konto', url: 'https://account.mojo-institut.de', icon: User, category: 'user', description: 'Profil und Kontoeinstellungen' },
-  { id: 'pos', name: 'pos.mojo', shortName: 'POS', url: 'https://pos.mojo-institut.de', icon: CreditCard, category: 'team', entitlement: 'pos:access', description: 'Kassensystem und Verkauf' },
-  { id: 'checkin', name: 'checkin.mojo', shortName: 'Check-in', url: 'https://checkin.mojo-institut.de', icon: QrCode, category: 'team', entitlement: 'checkin:access', description: 'Teilnehmer-Check-in' },
-  { id: 'payments', name: 'payments.mojo', shortName: 'Payments', url: 'https://payments.mojo-institut.de', icon: Wallet, category: 'admin', entitlement: 'payments:admin', description: 'Zahlungen und Abonnements' },
-  { id: 'kontakte', name: 'kontakte.mojo', shortName: 'Kontakte', url: 'https://kontakte.mojo-institut.de', icon: Users, category: 'admin', entitlement: 'kontakte:admin', description: 'Kundenverwaltung (CRM)' },
-  { id: 'connect', name: 'connect.mojo', shortName: 'Connect', url: 'https://connect.mojo-institut.de', icon: Workflow, category: 'admin', entitlement: 'connect:admin', external: true, externalLabel: 'n8n', description: 'Automationen und Workflows' },
-  { id: 'mailer', name: 'mailer.mojo', shortName: 'Mailer', url: 'https://mailer.mojo-institut.de', icon: Mail, category: 'admin', entitlement: 'mailer:admin', external: true, externalLabel: 'Mautic', description: 'E-Mail Marketing' },
-  { id: 'design', name: 'design.mojo', shortName: 'Design', url: 'https://dev.design.mojo-institut.de', icon: Palette, category: 'admin', entitlement: 'platform:developer', description: 'Design System Dokumentation' },
-];
+// Payments.mojo API URL for fetching app entitlements
+const PAYMENTS_API_URL = process.env.NEXT_PUBLIC_PAYMENTS_API_URL || 'https://payments.mojo-institut.de/api/v1';
 
-function filterAppsByEntitlements(apps: MojoApp[], entitlements: string[]): MojoApp[] {
-  return apps.filter((app) => {
-    if (!app.entitlement) return true;
-    return entitlements.includes(app.entitlement);
-  });
+interface AppEntitlementsResponse {
+  entitlements: string[];
+  isPlatformAdmin: boolean;
+}
+
+async function fetchAppEntitlements(userId: string, tenantId: string): Promise<string[]> {
+  try {
+    const response = await fetch(
+      `${PAYMENTS_API_URL}/me/app-entitlements?userId=${encodeURIComponent(userId)}&tenantId=${encodeURIComponent(tenantId)}`,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    
+    const data: AppEntitlementsResponse = await response.json();
+    return data.entitlements || [];
+  } catch (error) {
+    console.error('Failed to fetch app entitlements from payments.mojo:', error);
+    return [];
+  }
 }
 
 export function Header() {
   const { user, logout } = useAuth();
   const router = useRouter();
+  const [appEntitlements, setAppEntitlements] = useState<string[]>([]);
+  const [isLoadingEntitlements, setIsLoadingEntitlements] = useState(true);
+
+  // Fetch app entitlements from payments.mojo API
+  useEffect(() => {
+    async function loadAppEntitlements() {
+      if (!user?.id || !user?.tenantId) {
+        setIsLoadingEntitlements(false);
+        return;
+      }
+
+      try {
+        const entitlements = await fetchAppEntitlements(user.id, user.tenantId);
+        setAppEntitlements(entitlements);
+      } catch (error) {
+        console.error('Failed to load app entitlements:', error);
+        // Fallback: campus users typically only have access to user-level apps (no entitlements needed)
+        setAppEntitlements([]);
+      } finally {
+        setIsLoadingEntitlements(false);
+      }
+    }
+
+    loadAppEntitlements();
+  }, [user?.id, user?.tenantId]);
 
   const handleLogout = () => {
     logout();
@@ -61,6 +90,15 @@ export function Header() {
     return (
       <div className="flex w-full items-center justify-center px-4">
         <MojoLogo size="sm" mode="dark" />
+      </div>
+    );
+  }
+
+  // Show loading state while fetching entitlements
+  if (isLoadingEntitlements) {
+    return (
+      <div className="flex w-full items-center justify-center px-4">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
       </div>
     );
   }
@@ -85,13 +123,10 @@ export function Header() {
   // For now, only show current tenant (can be extended later)
   const tenants: Tenant[] = [currentTenant];
 
-  // User entitlements - campus users typically only have access to user-level apps
-  const entitlements: string[] = [];
-
-  // Filter apps based on entitlements
+  // Filter apps based on dynamically loaded entitlements
   const visibleApps = useMemo(
-    () => filterAppsByEntitlements(MOJO_APPS, entitlements),
-    [entitlements]
+    () => filterAppsByEntitlements(MOJO_APPS, appEntitlements),
+    [appEntitlements]
   );
 
   const handleTenantChange = (tenant: Tenant) => {
@@ -126,4 +161,3 @@ export function Header() {
     </div>
   );
 }
-

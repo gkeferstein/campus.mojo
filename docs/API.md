@@ -793,3 +793,6 @@ Webhook für CRM-Events (HubSpot, Pipedrive, etc.).
 - **Header:** `X-RateLimit-Remaining` zeigt verbleibende Requests
 - **Response bei Überschreitung:** 429 Too Many Requests
 
+
+
+

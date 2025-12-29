@@ -1,7 +1,6 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
-import jwt from '@fastify/jwt';
 import rateLimit from '@fastify/rate-limit';
 
 import { healthRoutes } from './routes/health.js';
@@ -28,13 +27,6 @@ await fastify.register(cors, {
 
 await fastify.register(helmet, {
   contentSecurityPolicy: false,
-});
-
-await fastify.register(jwt, {
-  secret: process.env.JWT_SECRET || 'development-secret-change-me',
-  sign: {
-    expiresIn: process.env.JWT_EXPIRES_IN || '7d',
-  },
 });
 
 await fastify.register(rateLimit, {
@@ -72,4 +64,5 @@ const start = async () => {
 start();
 
 export { fastify };
+
 

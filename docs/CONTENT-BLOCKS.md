@@ -410,3 +410,6 @@ Content-Blocks werden nicht automatisch validiert. Best Practices:
 2. **Im Frontend:** Fallback für unbekannte Block-Typen (gibt `null` zurück)
 3. **Seed-Script:** Valide Beispiele in `scripts/seed-directus.js`
 
+
+
+

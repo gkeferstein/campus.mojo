@@ -58,7 +58,6 @@ WORKDIR /app
 # Install wget for healthcheck
 RUN apk add --no-cache wget
 
-ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN addgroup --system --gid 1001 nodejs

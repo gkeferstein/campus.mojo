@@ -1,59 +1,23 @@
-# Campus.mojo - Projekt-spezifische Cursor Rules
+# campus.mojo - Cursor Rules
 
-## Projekt-Kontext
+> **Globale Standards:** `/root/projects/CODING_STANDARDS.md`
 
-Dies ist das MOJO Campus Learning Management System (LMS) mit:
-- **Directus** als headless CMS für Kursinhalte
-- **Fastify + TypeScript** API für Progress-Tracking und Authentifizierung
-- **Next.js App Router** Frontend mit Premium Dark UI
-- **PostgreSQL** als Datenbank
+## Projekt-Info
+
+- **Typ:** Learning Management System (LMS)
+- **Domain:** campus.mojo-institut.de
+- **Stack:** Next.js + Fastify + Prisma
 
 ## Architektur
 
 ```
-campus.mojo/
-├── packages/
-│   ├── api/          # Fastify LMS API (Port 3001)
-│   └── frontend/     # Next.js Frontend (Port 3000)
-├── directus/         # Directus CMS Config (Port 8055)
-└── scripts/          # Seed & Utility Scripts
+packages/
+├── web/        # Frontend (Next.js)
+└── api/        # Backend API (Fastify)
 ```
 
-## Code-Standards
+## Wichtige Patterns
 
-### API (Fastify + TypeScript)
-- Verwende Zod für Request/Response Validation
-- Prisma für Datenbank-Operationen
-- JWT-basierte Authentifizierung
-- Repository-Pattern für Datenzugriff
-- Keine `any` Types - strikt typisiert
-
-### Frontend (Next.js)
-- App Router mit Server Components wo sinnvoll
-- Client Components für interaktive Elemente
-- Tailwind CSS + shadcn/ui Komponenten
-- Framer Motion für Animationen
-- `useProgress` Hook für Progress-State
-
-### Content Blocks
-Lessons verwenden JSON-basierte `content_blocks`:
-- `heading`, `paragraph`, `callout`, `code_block`
-- `image`, `video_embed`, `divider`
-- `card_grid`, `pro_tip`, `quiz_embed`
-
-## Wichtige Dateien
-
-- `docker-compose.yml` - Service-Orchestrierung
-- `packages/api/prisma/schema.prisma` - Datenbank-Schema
-- `packages/frontend/src/components/LessonRenderer.tsx` - Block-Renderer
-- `packages/frontend/src/providers/ProgressProvider.tsx` - Progress-State
-
-## Deployment
-
-- Domain: `campus.mojo-institut.de`
-- Traefik-Netzwerk: `mojo-campus-network`
-- CI/CD über GitHub Actions
-- Secrets in GitHub Repository Settings
-
-
-
+1. **Multitenancy:** `@mojo/tenant` Middleware (Creator können eigene Kurse hosten)
+2. **Auth:** Clerk JWT
+3. **Entitlements:** User-Berechtigungen für Kurse via `EntitlementGate`

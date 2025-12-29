@@ -178,3 +178,6 @@ export async function getTotalLessonsForCourse(courseId: string): Promise<number
   }
 }
 
+
+
+

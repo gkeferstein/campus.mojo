@@ -80,7 +80,6 @@ services:
       directus:
         condition: service_started
     environment:
-      NODE_ENV: ${NODE_ENV:-production}
       PORT: 3001
       DATABASE_URL: postgresql://${POSTGRES_USER:-campus}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-campus_lms}?schema=lms
       JWT_SECRET: ${JWT_SECRET}
@@ -125,7 +124,6 @@ services:
       api:
         condition: service_started
     environment:
-      NODE_ENV: ${NODE_ENV:-production}
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://campus.mojo-institut.de/api}
       NEXT_PUBLIC_DIRECTUS_URL: ${NEXT_PUBLIC_DIRECTUS_URL:-https://campus.mojo-institut.de/cms}
     healthcheck:

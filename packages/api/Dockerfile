@@ -32,7 +32,6 @@ COPY --from=builder /app/prisma ./prisma
 # Generate Prisma client in production
 RUN npx prisma generate
 
-ENV NODE_ENV=production
 ENV PORT=3001
 
 EXPOSE 3001

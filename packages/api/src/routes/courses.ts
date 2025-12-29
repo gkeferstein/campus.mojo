@@ -200,3 +200,6 @@ export async function coursesRoutes(fastify: FastifyInstance): Promise<void> {
 
 
 
+
+
+
