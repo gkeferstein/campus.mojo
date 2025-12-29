@@ -2,6 +2,11 @@
 
 Eine moderne headless LMS-Plattform mit Directus CMS, Fastify API und Next.js Frontend.
 
+**Domain:** campus.mojo-institut.de  
+**Status:** Production-Ready
+
+---
+
 ## Architektur
 
 ```
@@ -16,14 +21,20 @@ Eine moderne headless LMS-Plattform mit Directus CMS, Fastify API und Next.js Fr
 └─────────────┴─────────────┴─────────────┴─────────────────────────┘
 ```
 
+---
+
 ## Features
 
 - **Multi-Tenant LMS** mit Kurs-, Modul- und Lektionsstruktur
 - **Interaktive Tools** (z.B. VO2Max Calculator) mit persistenten User-Variablen
 - **Quiz-System** mit Single/Multi-Choice und automatischer Bewertung
 - **Progress-Tracking** für Lektionen und Kurse
+- **Entitlement-System** für Kurszugriff (via Webhooks von payments.mojo)
 - **Webhook-Integration** für Payments und CRM
 - **Directus CMS** für Content-Management
+- **Clerk SSO** für Authentifizierung
+
+---
 
 ## Dokumentation
 
@@ -33,6 +44,8 @@ Eine moderne headless LMS-Plattform mit Directus CMS, Fastify API und Next.js Fr
 | [docs/CONTENT-BLOCKS.md](docs/CONTENT-BLOCKS.md) | Content-Block-Typen für Lektionen |
 | [docs/INTERACTIVE-TOOLS.md](docs/INTERACTIVE-TOOLS.md) | Tool-System und VO2Max Calculator |
 | [docs/PORT.md](docs/PORT.md) | Port-Konfiguration und Routing |
+
+---
 
 ## Lokale Entwicklung
 
@@ -98,6 +111,8 @@ node scripts/create-test-user.js
 - **API Health:** http://localhost:3001/health
 - **Directus Admin:** http://localhost:8055/admin
 
+---
+
 ## Projektstruktur
 
 ```
@@ -126,6 +141,27 @@ campus.mojo/
 ├── docs/                     # Dokumentation
 └── scripts/                  # Utility-Skripte
 ```
+
+---
+
+## Datenbank-Schema (Prisma)
+
+### Core Entities
+
+| Entity | Beschreibung |
+|--------|--------------|
+| `Tenant` | Multi-Tenancy Unterstützung |
+| `TenantMembership` | User-Tenant Zuordnung mit Rollen |
+| `User` | User mit Clerk SSO (`clerkUserId`) |
+| `Entitlement` | Kurszugriffsrechte (von payments.mojo via Webhook) |
+| `Enrollment` | Kurs-Einschreibungen mit Progress |
+| `LessonProgress` | Lektions-Fortschritt und Zeit-Tracking |
+| `QuizAttempt` | Quiz-Versuche mit Score |
+| `QuizResponse` | Einzelne Quiz-Antworten |
+| `UserVariable` | Persistente Variablen für interaktive Tools |
+| `WebhookEvent` | Webhook-Audit-Log |
+
+---
 
 ## API Endpoints (Übersicht)
 
@@ -187,12 +223,47 @@ Vollständige Dokumentation: [docs/API.md](docs/API.md)
 | PUT | `/user-variables` | Einzelne Variable speichern |
 | POST | `/user-variables/bulk` | Mehrere Variablen speichern |
 
+**User Variables Request/Response:**
+
+```typescript
+// PUT /user-variables
+{
+  "toolSlug": "vo2max-calculator",
+  "key": "age",
+  "value": 35,
+  "lessonId": "uuid",     // optional
+  "courseId": "uuid"      // optional
+}
+
+// POST /user-variables/bulk
+{
+  "toolSlug": "vo2max-calculator",
+  "variables": {
+    "age": 35,
+    "steps": 12000,
+    "startBand": 3
+  },
+  "lessonId": "uuid",
+  "courseId": "uuid"
+}
+
+// GET /user-variables?toolSlug=vo2max-calculator
+// Response:
+{
+  "age": 35,
+  "steps": 12000,
+  "startBand": 3
+}
+```
+
 ### Webhooks
 
 | Methode | Endpoint | Beschreibung |
 |---------|----------|--------------|
-| POST | `/webhooks/payments` | Payment-Events |
+| POST | `/webhooks/payments` | Payment-Events (Entitlements) |
 | POST | `/webhooks/crm` | CRM-Events |
+
+---
 
 ## Content-Blöcke
 
@@ -212,14 +283,24 @@ Lektionen verwenden JSON-basierte `content_blocks`. Vollständige Dokumentation:
 | `quiz_embed` | Eingebettetes Quiz |
 | `interactive_tool` | Interaktive Tools (z.B. VO2Max) |
 
+---
+
 ## Interactive Tools
 
-Das LMS unterstützt interaktive Tools, die in Lektionen eingebettet werden können. User-Eingaben werden automatisch persistiert.
+Das LMS unterstützt interaktive Tools, die in Lektionen eingebettet werden können. User-Eingaben werden automatisch in `UserVariable` persistiert.
 
 Dokumentation: [docs/INTERACTIVE-TOOLS.md](docs/INTERACTIVE-TOOLS.md)
 
 **Verfügbare Tools:**
 - `vo2max-calculator` - Fitness-Level Schätzer mit Trainingsplaner
+
+**Funktionsweise:**
+1. Tool wird als `interactive_tool` Content-Block in Lektion eingebunden
+2. Frontend lädt bestehende Variablen via `GET /user-variables?toolSlug=xxx`
+3. User-Eingaben werden via `PUT /user-variables` oder `POST /user-variables/bulk` gespeichert
+4. Variablen sind pro User und Tool eindeutig (`userId + toolSlug + key`)
+
+---
 
 ## Production Deployment
 
@@ -259,13 +340,17 @@ docker exec campus-db pg_dump -U campus campus_lms > backup_$(date +%Y%m%d).sql
 tar -czf uploads_$(date +%Y%m%d).tar.gz directus/uploads/
 ```
 
+---
+
 ## Sicherheit
 
 - Alle Secrets in `.env` definieren
 - HTTPS via Traefik mit Let's Encrypt
-- JWT-Tokens für API-Authentifizierung
+- JWT-Tokens für API-Authentifizierung (Clerk SSO)
 - Webhook-Signaturprüfung für externe Events
 - Rate-Limiting auf API-Ebene (100 req/min)
+
+---
 
 ## Environment-Variablen
 
@@ -274,6 +359,7 @@ tar -czf uploads_$(date +%Y%m%d).tar.gz directus/uploads/
 | `POSTGRES_USER` | PostgreSQL User |
 | `POSTGRES_PASSWORD` | PostgreSQL Passwort |
 | `POSTGRES_DB` | Datenbank-Name |
+| `DATABASE_URL` | PostgreSQL Connection String |
 | `DIRECTUS_KEY` | Directus Key |
 | `DIRECTUS_SECRET` | Directus Secret |
 | `DIRECTUS_ADMIN_EMAIL` | Admin E-Mail |
@@ -282,7 +368,9 @@ tar -czf uploads_$(date +%Y%m%d).tar.gz directus/uploads/
 | `JWT_SECRET` | Secret für JWT-Signierung |
 | `JWT_EXPIRES_IN` | Token-Ablaufzeit (default: 7d) |
 | `WEBHOOK_SECRET` | Secret für Webhook-Validierung |
+| `CLERK_SECRET_KEY` | Clerk Secret Key |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk Publishable Key |
 
 ---
 
-**Zuletzt aktualisiert:** 2024-12-28
+**Zuletzt aktualisiert:** 2024-12-29
