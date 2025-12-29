@@ -17,7 +17,7 @@ services:
       retries: 5
     restart: unless-stopped
     networks:
-      - mojo-campus-network
+      - mojo-network
 
   # Directus CMS
   directus:
@@ -52,20 +52,18 @@ services:
       start_period: 30s
     restart: unless-stopped
     networks:
-      - mojo-campus-network
+      - mojo-network
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network=mojo-campus-network"
-      # Directus CMS Router
+      - "traefik.docker.network=mojo-network"
+      # Directus CMS: /cms
       - "traefik.http.routers.campus-directus.rule=Host(`campus.mojo-institut.de`) && PathPrefix(`/cms`)"
       - "traefik.http.routers.campus-directus.entrypoints=websecure"
       - "traefik.http.routers.campus-directus.tls.certresolver=letsencrypt"
       - "traefik.http.routers.campus-directus.service=campus-directus"
       - "traefik.http.routers.campus-directus.priority=20"
-      # Strip /cms prefix
       - "traefik.http.routers.campus-directus.middlewares=campus-directus-strip"
       - "traefik.http.middlewares.campus-directus-strip.stripprefix.prefixes=/cms"
-      # Service
       - "traefik.http.services.campus-directus.loadbalancer.server.port=8055"
 
   # LMS API (Fastify)
@@ -95,20 +93,18 @@ services:
       start_period: 20s
     restart: unless-stopped
     networks:
-      - mojo-campus-network
+      - mojo-network
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network=mojo-campus-network"
-      # API Router
+      - "traefik.docker.network=mojo-network"
+      # API: /api
       - "traefik.http.routers.campus-api.rule=Host(`campus.mojo-institut.de`) && PathPrefix(`/api`)"
       - "traefik.http.routers.campus-api.entrypoints=websecure"
       - "traefik.http.routers.campus-api.tls.certresolver=letsencrypt"
       - "traefik.http.routers.campus-api.service=campus-api"
       - "traefik.http.routers.campus-api.priority=15"
-      # Strip /api prefix
-      - "traefik.http.routers.campus-api.middlewares=campus-api-strip"
+      - "traefik.http.routers.campus-api.middlewares=campus-api-strip,security-headers@file,cors@file"
       - "traefik.http.middlewares.campus-api-strip.stripprefix.prefixes=/api"
-      # Service
       - "traefik.http.services.campus-api.loadbalancer.server.port=3001"
 
   # Next.js Frontend
@@ -134,17 +130,17 @@ services:
       start_period: 30s
     restart: unless-stopped
     networks:
-      - mojo-campus-network
+      - mojo-network
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network=mojo-campus-network"
-      # Frontend Router (catch-all, lowest priority)
+      - "traefik.docker.network=mojo-network"
+      # Frontend (catch-all)
       - "traefik.http.routers.campus-frontend.rule=Host(`campus.mojo-institut.de`)"
       - "traefik.http.routers.campus-frontend.entrypoints=websecure"
       - "traefik.http.routers.campus-frontend.tls.certresolver=letsencrypt"
       - "traefik.http.routers.campus-frontend.service=campus-frontend"
       - "traefik.http.routers.campus-frontend.priority=1"
-      # Service
+      - "traefik.http.routers.campus-frontend.middlewares=security-headers@file"
       - "traefik.http.services.campus-frontend.loadbalancer.server.port=3000"
 
 volumes:
@@ -154,7 +150,6 @@ volumes:
     name: campus-directus-uploads
 
 networks:
-  mojo-campus-network:
-    name: mojo-campus-network
+  mojo-network:
+    name: mojo-network
     external: true
-
