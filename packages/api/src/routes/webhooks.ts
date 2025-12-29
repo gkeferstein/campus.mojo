@@ -138,12 +138,14 @@ export async function webhooksRoutes(fastify: FastifyInstance): Promise<void> {
       switch (body.event) {
         case 'contact.created':
         case 'contact.updated': {
-          // Update or create user profile
+          // Update or create user profile (SSO only - no password)
+          // Generate a temporary clerkUserId for kontakte imports
+          const tempClerkUserId = `kontakte_${Date.now()}_${body.data.email.replace(/[^a-zA-Z0-9]/g, '_')}`;
           await prisma.user.upsert({
             where: { email: body.data.email },
             create: {
               email: body.data.email,
-              passwordHash: '', // No password - SSO only
+              clerkUserId: tempClerkUserId,
               firstName: body.data.firstName,
               lastName: body.data.lastName,
               tenantId: body.data.tenantId,

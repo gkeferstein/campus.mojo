@@ -5,10 +5,11 @@
  * Uses MOJO Design System MojoShell for consistent layout across all pages
  */
 
-import { ReactNode, useEffect } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { MojoShell, MojoBackground } from '@mojo/design';
 import { Header } from './Header';
+import { Sidebar } from './Sidebar';
 import { useAuth } from '@/providers/AuthProvider';
 
 interface DashboardLayoutProps {
@@ -18,6 +19,7 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -46,10 +48,12 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   return (
     <MojoShell
+      sidebar={<Sidebar />}
       topbar={<Header />}
       showBackground
       noise
       orbs
+      sidebarCollapsed={sidebarCollapsed}
       className="p-6"
     >
       {children}

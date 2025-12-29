@@ -1,139 +1,347 @@
+/**
+ * Campus.mojo - Global Styles
+ * MOJO Design System Tokens included inline for Docker compatibility
+ */
+
+/* Google Fonts Import */
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  :root {
-    --background: 0 0% 3%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 6%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 6%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 262 83% 58%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 0 0% 12%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 12%;
-    --muted-foreground: 0 0% 63%;
-    --accent: 262 83% 58%;
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 62% 50%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14%;
-    --input: 0 0% 14%;
-    --ring: 262 83% 58%;
-    --radius: 0.75rem;
-    --chart-1: 262 83% 58%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
-  }
+/* ═══════════════════════════════════════════════════════════════════════════
+   MOJO DESIGN SYSTEM TOKENS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* Base Colors - Light Mode (defaults) */
+  --background: 0 0% 100%;
+  --foreground: 0 0% 3.9%;
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 3.9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 3.9%;
+  --primary: 142 71% 63%;
+  --primary-foreground: 0 0% 0%;
+  --secondary: 0 0% 96%;
+  --secondary-foreground: 0 0% 9%;
+  --muted: 0 0% 96%;
+  --muted-foreground: 0 0% 45%;
+  --accent: 271 68% 52%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 0 0% 90%;
+  --input: 0 0% 90%;
+  --ring: 142 71% 63%;
+
+  /* Surface Colors */
+  --surface: 0 0% 98%;
+  --surface-elevated: 0 0% 100%;
+
+  /* MOJO Primary Colors */
+  --mojo-primary: #66dd99;
+  --mojo-primary-dark: #44cc88;
+  --mojo-primary-darker: #22bb77;
+  --mojo-primary-light: rgba(102, 221, 153, 0.15);
+
+  /* MOJO Accent Colors */
+  --mojo-accent: #873acf;
+  --mojo-accent-dark: #6b2ea6;
+  --mojo-accent-light: rgba(135, 58, 207, 0.15);
+
+  /* Semantic Colors */
+  --mojo-success: #059669;
+  --mojo-error: #dc2626;
+  --mojo-warning: #f59e0b;
+  --mojo-info: #3b82f6;
+
+  /* Glassmorphism */
+  --mojo-glass-bg: rgba(255, 255, 255, 0.7);
+  --mojo-glass-bg-strong: rgba(255, 255, 255, 0.85);
+  --mojo-glass-bg-subtle: rgba(255, 255, 255, 0.5);
+  --mojo-glass-border: rgba(102, 221, 153, 0.2);
+  --mojo-glass-border-subtle: rgba(255, 255, 255, 0.3);
+  --mojo-glass-border-strong: rgba(102, 221, 153, 0.4);
+  --mojo-glass-blur: 12px;
+  --mojo-glass-blur-strong: 20px;
+  --mojo-glass-blur-subtle: 8px;
+
+  /* Page Background */
+  --mojo-page-bg: #f8fafc;
+  --mojo-page-gradient: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #f8fafc 100%);
+
+  /* Gradient Orbs */
+  --mojo-orb-green: #66dd99;
+  --mojo-orb-purple: #873acf;
+  --mojo-orb-cyan: #3aaed8;
+  --mojo-orb-opacity-1: 0.3;
+  --mojo-orb-opacity-2: 0.25;
+  --mojo-orb-opacity-3: 0.2;
+
+  /* Noise Overlay */
+  --mojo-noise-opacity: 0.02;
+
+  /* Shadows */
+  --mojo-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --mojo-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --mojo-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --mojo-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --mojo-shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  --mojo-shadow-primary: 0 4px 12px rgba(102, 221, 153, 0.3);
+  --mojo-shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.1);
+
+  /* Scrollbar */
+  --mojo-scrollbar-track: rgba(0, 0, 0, 0.05);
+  --mojo-scrollbar-thumb: rgba(102, 221, 153, 0.4);
+  --mojo-scrollbar-thumb-hover: rgba(102, 221, 153, 0.6);
+
+  /* Selection */
+  --mojo-selection-bg: rgba(102, 221, 153, 0.3);
+
+  /* Typography */
+  --font-sans: 'Instrument Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+
+  /* Border Radius */
+  --radius: 0.5rem;
+  --radius-sm: 0.375rem;
+  --radius-md: 0.625rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.125rem;
+  --radius-full: 9999px;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   DARK MODE
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.dark {
+  --background: 0 0% 3.9%;
+  --foreground: 0 0% 98%;
+  --card: 0 0% 6%;
+  --card-foreground: 0 0% 98%;
+  --popover: 0 0% 6%;
+  --popover-foreground: 0 0% 98%;
+  --primary: 142 71% 63%;
+  --primary-foreground: 0 0% 0%;
+  --secondary: 0 0% 14%;
+  --secondary-foreground: 0 0% 98%;
+  --muted: 0 0% 14%;
+  --muted-foreground: 0 0% 63%;
+  --accent: 271 68% 52%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 62% 50%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 0 0% 14%;
+  --input: 0 0% 14%;
+  --ring: 142 71% 63%;
+
+  /* Surface Colors - Dark */
+  --surface: 0 0% 6%;
+  --surface-elevated: 0 0% 9%;
+
+  /* Glassmorphism - Dark */
+  --mojo-glass-bg: rgba(255, 255, 255, 0.05);
+  --mojo-glass-bg-strong: rgba(255, 255, 255, 0.08);
+  --mojo-glass-bg-subtle: rgba(255, 255, 255, 0.03);
+  --mojo-glass-border: rgba(102, 221, 153, 0.15);
+  --mojo-glass-border-subtle: rgba(255, 255, 255, 0.08);
+  --mojo-glass-border-strong: rgba(102, 221, 153, 0.25);
+  --mojo-glass-blur: 16px;
+  --mojo-glass-blur-strong: 24px;
+  --mojo-glass-blur-subtle: 10px;
+
+  /* Page Background - Dark */
+  --mojo-page-bg: #030303;
+  --mojo-page-gradient: linear-gradient(135deg, #030303 0%, #0a0a0a 50%, #050505 100%);
+
+  /* Gradient Orbs - Dark (more vibrant) */
+  --mojo-orb-opacity-1: 0.4;
+  --mojo-orb-opacity-2: 0.35;
+  --mojo-orb-opacity-3: 0.25;
+
+  /* Noise Overlay - Dark */
+  --mojo-noise-opacity: 0.03;
+
+  /* Shadows - Dark (with subtle glow) */
+  --mojo-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+  --mojo-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.3);
+  --mojo-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.3);
+  --mojo-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.3), 0 0 40px rgba(102, 221, 153, 0.05);
+  --mojo-shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.4), 0 8px 10px -6px rgb(0 0 0 / 0.3), 0 0 60px rgba(102, 221, 153, 0.08);
+  --mojo-shadow-primary: 0 4px 12px rgba(102, 221, 153, 0.4);
+  --mojo-shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 40px rgba(102, 221, 153, 0.05);
+
+  /* Scrollbar - Dark */
+  --mojo-scrollbar-track: rgba(255, 255, 255, 0.03);
+  --mojo-scrollbar-thumb: rgba(102, 221, 153, 0.3);
+  --mojo-scrollbar-thumb-hover: rgba(102, 221, 153, 0.5);
+
+  /* Selection - Dark */
+  --mojo-selection-bg: rgba(102, 221, 153, 0.35);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   BASE STYLES
+   ═══════════════════════════════════════════════════════════════════════════ */
 
 @layer base {
   * {
     @apply border-border;
   }
+
+  html {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
   body {
-    @apply bg-background text-foreground antialiased;
+    @apply bg-background text-foreground;
+    font-feature-settings: 'rlig' 1, 'calt' 1;
+  }
+
+  ::selection {
+    background: var(--mojo-selection-bg);
+  }
+
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--mojo-scrollbar-track);
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--mojo-scrollbar-thumb);
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--mojo-scrollbar-thumb-hover);
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
   }
 }
 
-/* Noise overlay */
-.bg-noise::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-  opacity: 0.03;
-  pointer-events: none;
-  z-index: 1;
+/* ═══════════════════════════════════════════════════════════════════════════
+   MOJO DESIGN SYSTEM COMPONENTS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@layer components {
+  /* Noise overlay */
+  .mojo-noise::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    opacity: var(--mojo-noise-opacity);
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* Gradient orbs container */
+  .mojo-orbs-container {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .mojo-orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    pointer-events: none;
+    animation: float 8s ease-in-out infinite;
+  }
+
+  .mojo-orb-green {
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, var(--mojo-orb-green) 0%, transparent 70%);
+    opacity: var(--mojo-orb-opacity-1);
+    top: -200px;
+    right: -200px;
+  }
+
+  .mojo-orb-purple {
+    width: 450px;
+    height: 450px;
+    background: radial-gradient(circle, var(--mojo-orb-purple) 0%, transparent 70%);
+    opacity: var(--mojo-orb-opacity-2);
+    bottom: -150px;
+    left: -150px;
+    animation-delay: -4s;
+  }
+
+  .mojo-orb-cyan {
+    width: 350px;
+    height: 350px;
+    background: radial-gradient(circle, var(--mojo-orb-cyan) 0%, transparent 70%);
+    opacity: var(--mojo-orb-opacity-3);
+    top: 40%;
+    left: 25%;
+    animation-delay: -2s;
+  }
+
+  /* Glass effects */
+  .mojo-glass {
+    background: var(--mojo-glass-bg);
+    backdrop-filter: blur(var(--mojo-glass-blur));
+    -webkit-backdrop-filter: blur(var(--mojo-glass-blur));
+    border: 1px solid var(--mojo-glass-border);
+  }
+
+  .mojo-glass-card {
+    @apply mojo-glass;
+    box-shadow: var(--mojo-shadow-glass);
+    border-radius: var(--radius-xl);
+  }
+
+  /* Text gradient */
+  .mojo-text-gradient {
+    background: linear-gradient(135deg, var(--mojo-primary) 0%, var(--mojo-accent) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* Glow effects */
+  .mojo-glow-primary {
+    box-shadow: 0 0 20px rgba(102, 221, 153, 0.3);
+  }
+
+  .mojo-glow-primary:hover {
+    box-shadow: 0 0 30px rgba(102, 221, 153, 0.4);
+  }
 }
 
-/* Gradient orbs */
-.gradient-orb {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(80px);
-  opacity: 0.4;
-  animation: float 8s ease-in-out infinite;
+/* ═══════════════════════════════════════════════════════════════════════════
+   ANIMATIONS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@keyframes float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  33% { transform: translateY(-15px) rotate(1deg); }
+  66% { transform: translateY(10px) rotate(-1deg); }
 }
 
-.gradient-orb-1 {
-  width: 600px;
-  height: 600px;
-  background: radial-gradient(circle, hsl(262, 83%, 58%) 0%, transparent 70%);
-  top: -200px;
-  right: -200px;
-  animation-delay: 0s;
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
 }
 
-.gradient-orb-2 {
-  width: 400px;
-  height: 400px;
-  background: radial-gradient(circle, hsl(280, 70%, 50%) 0%, transparent 70%);
-  bottom: -100px;
-  left: -100px;
-  animation-delay: -4s;
+@keyframes pulse-glow {
+  0%, 100% { opacity: 1; box-shadow: 0 0 20px rgba(102, 221, 153, 0.3); }
+  50% { opacity: 0.8; box-shadow: 0 0 40px rgba(102, 221, 153, 0.5); }
 }
-
-.gradient-orb-3 {
-  width: 300px;
-  height: 300px;
-  background: radial-gradient(circle, hsl(200, 80%, 50%) 0%, transparent 70%);
-  top: 50%;
-  left: 30%;
-  animation-delay: -2s;
-}
-
-/* Progress bar gradient */
-.progress-gradient {
-  background: linear-gradient(90deg, 
-    hsl(262, 83%, 58%) 0%, 
-    hsl(280, 70%, 55%) 50%, 
-    hsl(300, 75%, 50%) 100%
-  );
-  background-size: 200% 100%;
-  animation: gradient-shift 3s ease infinite;
-}
-
-/* Scrollbar styling */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: hsl(0 0% 6%);
-}
-
-::-webkit-scrollbar-thumb {
-  background: hsl(0 0% 20%);
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: hsl(0 0% 30%);
-}
-
-/* Code block styling */
-pre {
-  @apply bg-card border border-border rounded-lg p-4 overflow-x-auto;
-}
-
-code {
-  @apply font-mono text-sm;
-}
-
-/* Selection */
-::selection {
-  background: hsl(262 83% 58% / 0.3);
-}
-
-
-
-
-
-

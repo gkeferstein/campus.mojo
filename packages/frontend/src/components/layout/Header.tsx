@@ -3,6 +3,7 @@
 /**
  * Header Component
  * Uses MOJO Design System navigation components for the topbar
+ * Note: MojoShell provides the outer header wrapper, so we only provide the content here
  * 
  * App entitlements are loaded dynamically from the payments.mojo API
  */
@@ -18,7 +19,7 @@ import {
 import { useAuth } from '@/providers/AuthProvider';
 import { useRouter } from 'next/navigation';
 import type { Tenant, MojoUser } from '@mojo/design';
-import { useMemo, useEffect, useState } from 'react';
+import { useMemo, useEffect, useState, useCallback } from 'react';
 
 // Payments.mojo API URL for fetching app entitlements
 const PAYMENTS_API_URL = process.env.NEXT_PUBLIC_PAYMENTS_API_URL || 'https://payments.mojo-institut.de/api/v1';
@@ -80,13 +81,55 @@ export function Header() {
     loadAppEntitlements();
   }, [user?.id, user?.tenantId]);
 
-  const handleLogout = () => {
-    logout();
+  // Handle logout with useCallback (must be before any early returns)
+  const handleLogout = useCallback(async () => {
+    await logout();
     router.push('/login');
-  };
+  }, [logout, router]);
+
+  // Handle tenant change with useCallback (must be before any early returns)
+  const handleTenantChange = useCallback((tenant: Tenant) => {
+    console.log('Switching to tenant:', tenant.id);
+  }, []);
+
+  // Filter apps based on dynamically loaded entitlements
+  // IMPORTANT: useMemo must be called before any early returns (Rules of Hooks)
+  const visibleApps = useMemo(
+    () => filterAppsByEntitlements(MOJO_APPS, appEntitlements),
+    [appEntitlements]
+  );
+
+  // Map auth user to MojoUser format (memoized, must be before early returns)
+  const mojoUser: MojoUser | null = useMemo(() => {
+    if (!user) return null;
+    return {
+      id: user.id || user.clerkUserId,
+      name: user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : user.email.split('@')[0],
+      email: user.email,
+      imageUrl: user.avatarUrl,
+    };
+  }, [user]);
+
+  // Current tenant from user context (memoized, must be before early returns)
+  const currentTenant: Tenant | null = useMemo(() => {
+    if (!user) return null;
+    return {
+      id: user.tenantId || 'personal',
+      name: user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : 'Persönlich',
+      slug: user.tenantId || 'personal',
+      type: 'personal',
+      role: 'Mitglied',
+    };
+  }, [user]);
+
+  // For now, only show current tenant
+  const tenants: Tenant[] = useMemo(() => {
+    if (!currentTenant) return [];
+    return [currentTenant];
+  }, [currentTenant]);
 
   // If no user, show minimal header with just the logo
-  if (!user) {
+  if (!user || !mojoUser || !currentTenant) {
     return (
       <div className="flex w-full items-center justify-center px-4">
         <MojoLogo size="sm" mode="dark" />
@@ -102,36 +145,6 @@ export function Header() {
       </div>
     );
   }
-
-  // Map auth user to MojoUser format
-  const mojoUser: MojoUser = {
-    id: user.id,
-    name: user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : user.email.split('@')[0],
-    email: user.email,
-    imageUrl: user.avatarUrl,
-  };
-
-  // Current tenant from user context
-  const currentTenant: Tenant = {
-    id: user.tenantId || 'personal',
-    name: user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : 'Persönlich',
-    slug: user.tenantId || 'personal',
-    type: 'personal',
-    role: 'Mitglied',
-  };
-
-  // For now, only show current tenant (can be extended later)
-  const tenants: Tenant[] = [currentTenant];
-
-  // Filter apps based on dynamically loaded entitlements
-  const visibleApps = useMemo(
-    () => filterAppsByEntitlements(MOJO_APPS, appEntitlements),
-    [appEntitlements]
-  );
-
-  const handleTenantChange = (tenant: Tenant) => {
-    console.log('Switching to tenant:', tenant.id);
-  };
 
   return (
     <div className="flex w-full items-center gap-2 px-4">

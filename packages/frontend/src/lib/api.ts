@@ -1,10 +1,18 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-
 class ApiError extends Error {
   constructor(public status: number, message: string) {
     super(message);
     this.name = "ApiError";
   }
+}
+
+// Get API URL dynamically - use relative URL on client (works for both dev and prod)
+function getApiUrl(): string {
+  if (typeof window !== 'undefined') {
+    // Client-side: use relative URL (same origin)
+    return '/api';
+  }
+  // Server-side: use env variable
+  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 }
 
 async function request<T>(
@@ -21,7 +29,8 @@ async function request<T>(
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  const response = await fetch(`${API_URL}${endpoint}`, {
+  const apiUrl = getApiUrl();
+  const response = await fetch(`${apiUrl}${endpoint}`, {
     ...options,
     headers,
   });

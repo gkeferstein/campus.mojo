@@ -56,13 +56,21 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=mojo-network"
-      # Directus CMS: /cms
+      # PROD Directus CMS: /cms
       - "traefik.http.routers.campus-directus.rule=Host(`campus.mojo-institut.de`) && PathPrefix(`/cms`)"
       - "traefik.http.routers.campus-directus.entrypoints=websecure"
       - "traefik.http.routers.campus-directus.tls.certresolver=letsencrypt"
       - "traefik.http.routers.campus-directus.service=campus-directus"
       - "traefik.http.routers.campus-directus.priority=20"
       - "traefik.http.routers.campus-directus.middlewares=campus-directus-strip"
+      # DEV Directus CMS: /cms
+      - "traefik.http.routers.campus-directus-dev.rule=Host(`dev.campus.mojo-institut.de`) && PathPrefix(`/cms`)"
+      - "traefik.http.routers.campus-directus-dev.entrypoints=websecure"
+      - "traefik.http.routers.campus-directus-dev.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.campus-directus-dev.service=campus-directus"
+      - "traefik.http.routers.campus-directus-dev.priority=20"
+      - "traefik.http.routers.campus-directus-dev.middlewares=campus-directus-strip"
+      # Shared
       - "traefik.http.middlewares.campus-directus-strip.stripprefix.prefixes=/cms"
       - "traefik.http.services.campus-directus.loadbalancer.server.port=8055"
 
@@ -85,6 +93,7 @@ services:
       DIRECTUS_URL: http://directus:8055
       DIRECTUS_TOKEN: ${DIRECTUS_ADMIN_TOKEN}
       WEBHOOK_SECRET: ${WEBHOOK_SECRET}
+      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3001/health"]
       interval: 30s
@@ -97,13 +106,21 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=mojo-network"
-      # API: /api
+      # PROD API: /api
       - "traefik.http.routers.campus-api.rule=Host(`campus.mojo-institut.de`) && PathPrefix(`/api`)"
       - "traefik.http.routers.campus-api.entrypoints=websecure"
       - "traefik.http.routers.campus-api.tls.certresolver=letsencrypt"
       - "traefik.http.routers.campus-api.service=campus-api"
       - "traefik.http.routers.campus-api.priority=15"
       - "traefik.http.routers.campus-api.middlewares=campus-api-strip,security-headers@file,cors@file"
+      # DEV API: /api
+      - "traefik.http.routers.campus-api-dev.rule=Host(`dev.campus.mojo-institut.de`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.campus-api-dev.entrypoints=websecure"
+      - "traefik.http.routers.campus-api-dev.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.campus-api-dev.service=campus-api"
+      - "traefik.http.routers.campus-api-dev.priority=15"
+      - "traefik.http.routers.campus-api-dev.middlewares=campus-api-strip,security-headers@file,cors@file"
+      # Shared
       - "traefik.http.middlewares.campus-api-strip.stripprefix.prefixes=/api"
       - "traefik.http.services.campus-api.loadbalancer.server.port=3001"
 
@@ -115,6 +132,7 @@ services:
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://campus.mojo-institut.de/api}
         NEXT_PUBLIC_DIRECTUS_URL: ${NEXT_PUBLIC_DIRECTUS_URL:-https://campus.mojo-institut.de/cms}
+        NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
     container_name: campus-frontend
     depends_on:
       api:
@@ -122,6 +140,8 @@ services:
     environment:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://campus.mojo-institut.de/api}
       NEXT_PUBLIC_DIRECTUS_URL: ${NEXT_PUBLIC_DIRECTUS_URL:-https://campus.mojo-institut.de/cms}
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000"]
       interval: 30s
@@ -134,13 +154,21 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=mojo-network"
-      # Frontend (catch-all)
+      # PROD Frontend (catch-all)
       - "traefik.http.routers.campus-frontend.rule=Host(`campus.mojo-institut.de`)"
       - "traefik.http.routers.campus-frontend.entrypoints=websecure"
       - "traefik.http.routers.campus-frontend.tls.certresolver=letsencrypt"
       - "traefik.http.routers.campus-frontend.service=campus-frontend"
       - "traefik.http.routers.campus-frontend.priority=1"
       - "traefik.http.routers.campus-frontend.middlewares=security-headers@file"
+      # DEV Frontend (catch-all)
+      - "traefik.http.routers.campus-frontend-dev.rule=Host(`dev.campus.mojo-institut.de`)"
+      - "traefik.http.routers.campus-frontend-dev.entrypoints=websecure"
+      - "traefik.http.routers.campus-frontend-dev.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.campus-frontend-dev.service=campus-frontend"
+      - "traefik.http.routers.campus-frontend-dev.priority=1"
+      - "traefik.http.routers.campus-frontend-dev.middlewares=security-headers@file"
+      # Service
       - "traefik.http.services.campus-frontend.loadbalancer.server.port=3000"
 
 volumes:

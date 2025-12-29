@@ -24,8 +24,14 @@ export async function coursesRoutes(fastify: FastifyInstance): Promise<void> {
   }, async (request, reply) => {
     const tenantId = request.user?.tenantId || undefined;
     
-    // Get courses from Directus
-    const courses = await getCourses(tenantId);
+    // Get courses from Directus (graceful fallback if Directus not configured)
+    let courses: Course[] = [];
+    try {
+      courses = await getCourses(tenantId);
+    } catch (error) {
+      console.warn('Directus not available or courses collection not configured:', (error as Error).message);
+      // Return empty array - courses need to be set up in Directus CMS
+    }
 
     if (!request.user) {
       // Unauthenticated: return courses without progress

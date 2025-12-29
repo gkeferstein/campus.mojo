@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
-import { useAuth as useClerkAuth, useUser } from "@clerk/nextjs";
+import { useAuth as useClerkAuth, useUser, useClerk } from "@clerk/nextjs";
 import { api } from "@/lib/api";
 
 interface User {
@@ -20,12 +20,14 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   refreshUser: () => Promise<void>;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { isLoaded, isSignedIn, getToken } = useClerkAuth();
+  const { signOut } = useClerk();
   const { user: clerkUser } = useUser();
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
@@ -81,6 +83,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [isLoaded, isSignedIn, refreshUser]);
 
+  const logout = useCallback(async () => {
+    await signOut();
+    setUser(null);
+    setToken(null);
+  }, [signOut]);
+
   return (
     <AuthContext.Provider
       value={{
@@ -89,6 +97,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoading: !isLoaded || isLoading,
         isAuthenticated: isSignedIn || false,
         refreshUser,
+        logout,
       }}
     >
       {children}

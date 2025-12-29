@@ -248,7 +248,12 @@ export async function authenticate(
     }
 
   } catch (err: any) {
-    console.error('Auth error:', err.message);
+    console.error('Auth error:', err.message, err.stack);
+    console.error('Auth error details:', JSON.stringify({ 
+      name: err.name, 
+      code: err.code,
+      clerkError: err.clerkError 
+    }));
     return reply.status(401).send({ error: 'Invalid or expired token' });
   }
 }
