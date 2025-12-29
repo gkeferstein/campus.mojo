@@ -25,14 +25,40 @@ Eine moderne headless LMS-Plattform mit Directus CMS, Fastify API und Next.js Fr
 
 ## Features
 
+### Core LMS
 - **Multi-Tenant LMS** mit Kurs-, Modul- und Lektionsstruktur
 - **Interaktive Tools** (z.B. VO2Max Calculator) mit persistenten User-Variablen
 - **Quiz-System** mit Single/Multi-Choice und automatischer Bewertung
 - **Progress-Tracking** für Lektionen und Kurse
 - **Entitlement-System** für Kurszugriff (via Webhooks von payments.mojo)
+
+### MOJO Graduierungssystem
+- **6-Stufen Journey**: LEBENSENERGIE → CAMPUS → BOOTCAMP → RMOS → PRAXISZIRKEL → INKUBATOR
+- **Kurskatalog** (`/catalog`) - Sales-orientierte Übersicht aller Stufen mit Preisen
+- **Fortschritt** (`/progress`) - Visualisierung des Lernfortschritts durch alle Stufen
+- **Zertifikate** (`/certificates`) - Gamification mit verdienten Auszeichnungen
+- **Dashboard Quick-Overview** - Journey-Karte mit Schnellzugriff auf alle Bereiche
+
+### Integrationen
 - **Webhook-Integration** für Payments und CRM
 - **Directus CMS** für Content-Management
 - **Clerk SSO** für Authentifizierung
+- **MOJO Design System** für konsistentes UI
+
+---
+
+## Frontend-Seiten
+
+| Route | Beschreibung |
+|-------|--------------|
+| `/dashboard` | Haupt-Dashboard mit Kurs-Übersicht und Journey Quick-Overview |
+| `/courses/:slug` | Kurs-Detailseite mit Modulen und Lektionen |
+| `/courses/:slug/lessons/:slug` | Lektion mit Content-Blöcken und interaktiven Tools |
+| `/catalog` | Kurskatalog - Sales-View aller 6 MOJO Stufen |
+| `/progress` | Lern-Fortschritt durch das Graduierungssystem |
+| `/certificates` | Verdiente und verfügbare Zertifikate |
+| `/login` | Clerk SSO Login |
+| `/register` | Clerk SSO Registrierung |
 
 ---
 
@@ -78,7 +104,7 @@ docker network connect mojo-campus-network mojo-traefik
 
 ```bash
 # Development-Modus (mit Port-Expose)
-docker compose up -d
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 
 # Logs beobachten
 docker compose logs -f
@@ -118,6 +144,7 @@ node scripts/create-test-user.js
 ```
 campus.mojo/
 ├── docker-compose.yml        # Haupt-Orchestrierung
+├── docker-compose.dev.yml    # Dev-Override
 ├── .env.example              # Umgebungsvariablen Template
 ├── packages/
 │   ├── api/                  # Fastify LMS API
@@ -129,7 +156,7 @@ campus.mojo/
 │   │       └── schema.prisma # DB Schema
 │   └── frontend/             # Next.js App Router
 │       └── src/
-│           ├── app/          # Seiten
+│           ├── app/          # Seiten (dashboard, catalog, progress, certificates)
 │           ├── components/   # UI + Interactive Tools
 │           ├── providers/    # Auth, Progress Context
 │           └── lib/          # API Client, Utils
@@ -298,6 +325,28 @@ Dokumentation: [docs/INTERACTIVE-TOOLS.md](docs/INTERACTIVE-TOOLS.md)
 2. Frontend lädt bestehende Variablen via `GET /user-variables?toolSlug=xxx`
 3. User-Eingaben werden via `PUT /user-variables` oder `POST /user-variables/bulk` gespeichert
 4. Variablen sind pro User und Tool eindeutig (`userId + toolSlug + key`)
+
+---
+
+## MOJO Graduierungssystem
+
+Das Campus LMS bildet das 6-stufige MOJO Graduierungssystem ab:
+
+| Stufe | Name | Farbe | Beschreibung |
+|-------|------|-------|--------------|
+| 1 | LEBENSENERGIE | 🟢 Grün | Grundlagen der Regeneration |
+| 2 | CAMPUS | ⚪ Weiß | Community & Biohacking |
+| 3 | BUSINESS BOOTCAMP | 🔵 Blau | Gesundheits-Unternehmertum |
+| 4 | RegenerationsmedizinOS | 🟣 Lila | Experten-Ausbildung |
+| 5 | Praxiszirkel | 🟡 Gelb | Spezialisierung & Mentoring |
+| 6 | MOJO Inkubator | ⚫ Schwarz | Franchise-Partner |
+
+**Frontend-Seiten:**
+
+- **`/catalog`** - Kurskatalog mit allen 6 Stufen, Preisen und "Zugang kaufen" CTAs
+- **`/progress`** - Timeline-Visualisierung des Lernfortschritts (inspiriert von accounts.mojo Journey)
+- **`/certificates`** - Gamification mit verdienten/gesperrten Zertifikaten
+- **Dashboard** - Quick-Overview Karte mit Stufen-Fortschritt und Schnellzugriff
 
 ---
 
