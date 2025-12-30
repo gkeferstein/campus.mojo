@@ -15,7 +15,7 @@ RUN if [ -n "$GITHUB_TOKEN" ]; then \
       echo "//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}" >> ~/.npmrc && \
       echo "always-auth=true" >> ~/.npmrc; \
     fi
-RUN npm install --legacy-peer-deps
+RUN npm install --legacy-peer-deps || (rm -rf node_modules package-lock.json && npm install --legacy-peer-deps)
 
 # Copy source and build
 COPY . .
