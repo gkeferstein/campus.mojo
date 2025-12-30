@@ -12,6 +12,14 @@ COPY design.mojo/packages/design/tailwind.config.ts /design-system/tailwind.conf
 # Use pre-configured package.json for Docker (without workspace: deps)
 COPY campus.mojo/packages/frontend/docker/design-package.json /design-system/package.json
 
+# Configure npm for GitHub Packages
+ARG GITHUB_TOKEN
+RUN if [ -n "$GITHUB_TOKEN" ]; then \
+      echo "@gkeferstein:registry=https://npm.pkg.github.com" > ~/.npmrc && \
+      echo "//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}" >> ~/.npmrc && \
+      echo "always-auth=true" >> ~/.npmrc; \
+    fi
+
 # Install design-system dependencies
 WORKDIR /design-system
 RUN npm install --legacy-peer-deps
@@ -22,6 +30,13 @@ COPY campus.mojo/packages/frontend/package.json ./
 
 # Update the @mojo/design path for Docker context
 RUN sed -i 's|file:../../../design.mojo/packages/design|file:/design-system|g' package.json
+
+# Configure npm for GitHub Packages (if not already configured)
+RUN if [ -n "$GITHUB_TOKEN" ] && [ ! -f ~/.npmrc ]; then \
+      echo "@gkeferstein:registry=https://npm.pkg.github.com" > ~/.npmrc && \
+      echo "//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}" >> ~/.npmrc && \
+      echo "always-auth=true" >> ~/.npmrc; \
+    fi
 
 # Install dependencies
 RUN npm install --legacy-peer-deps

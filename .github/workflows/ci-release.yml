@@ -556,16 +556,16 @@ jobs:
 
       - name: Create .npmrc for Frontend Docker Build
         run: |
-          echo "@gkeferstein:registry=https://npm.pkg.github.com" > packages/frontend/.npmrc
-          echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> packages/frontend/.npmrc
-          echo "always-auth=true" >> packages/frontend/.npmrc
+          echo "@gkeferstein:registry=https://npm.pkg.github.com" > .npmrc
+          echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> .npmrc
+          echo "always-auth=true" >> .npmrc
           echo "Created .npmrc for Frontend Docker build"
 
       - name: Build and push Frontend Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ./packages/frontend
-          file: ./packages/frontend/Dockerfile
+          context: ..
+          file: campus.mojo/packages/frontend/Dockerfile
           push: true
           tags: ${{ steps.meta-frontend.outputs.tags }}
           labels: ${{ steps.meta-frontend.outputs.labels }}
