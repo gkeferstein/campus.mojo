@@ -4,13 +4,13 @@
  * Validates Clerk JWT tokens and maps to local User records.
  * Uses the same Clerk account as accounts.mojo for SSO.
  * 
- * Supports @mojo/tenant headers for service-to-service calls.
+ * Supports @gkeferstein/tenant headers for service-to-service calls.
  */
 
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { createClerkClient, verifyToken } from '@clerk/backend';
 import { prisma } from '../lib/prisma.js';
-import { Tenant as MojoTenant, TenantContext, TENANT_HEADERS, extractTenantFromHeaders } from '@mojo/tenant';
+import { Tenant as MojoTenant, TenantContext, TENANT_HEADERS, extractTenantFromHeaders } from '@gkeferstein/tenant';
 import { logger } from '../lib/logger.js';
 
 export interface AuthUser {
@@ -25,7 +25,7 @@ export interface AuthUser {
 declare module 'fastify' {
   interface FastifyRequest {
     user?: AuthUser;
-    /** @mojo/tenant compatible tenant context */
+    /** @gkeferstein/tenant compatible tenant context */
     tenant: MojoTenant | null;
     tenantContext: TenantContext | null;
   }
@@ -46,7 +46,7 @@ function getClerkClient() {
 }
 
 /**
- * Convert Prisma Tenant to @mojo/tenant Tenant interface
+ * Convert Prisma Tenant to @gkeferstein/tenant Tenant interface
  */
 function toMojoTenant(tenant: {
   id: string;
@@ -77,7 +77,7 @@ async function resolveTenant(
   request: FastifyRequest,
   userId?: string
 ): Promise<{ tenant: MojoTenant | null; source: string }> {
-  // 1. Check @mojo/tenant headers first (for service-to-service calls)
+  // 1. Check @gkeferstein/tenant headers first (for service-to-service calls)
   const tenantInfo = extractTenantFromHeaders(request.headers as Record<string, string>);
   
   if (tenantInfo) {

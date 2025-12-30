@@ -7,7 +7,7 @@ const config: Config = {
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
     // Include design system components
-    "./node_modules/@mojo/design/dist/**/*.{js,ts,jsx,tsx}",
+    "./node_modules/@gkeferstein/design/dist/**/*.{js,ts,jsx,tsx}",
     "../../../design.mojo/packages/design/dist/**/*.{js,ts,jsx,tsx}",
     "/design-system/dist/**/*.{js,ts,jsx,tsx}",
   ],

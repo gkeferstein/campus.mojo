@@ -7,7 +7,7 @@
 
 import { ReactNode, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { MojoShell, MojoBackground } from '@mojo/design';
+import { MojoShell, MojoBackground } from '@gkeferstein/design';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
 import { useAuth } from '@/providers/AuthProvider';

@@ -1,9 +1,9 @@
 /**
  * Login Page
- * Uses unified SignInPage component from @mojo/design
+ * Uses unified SignInPage component from @gkeferstein/design
  */
 
-import { SignInPage } from '@mojo/design';
+import { SignInPage } from '@gkeferstein/design';
 
 export default function LoginPage() {
   return (

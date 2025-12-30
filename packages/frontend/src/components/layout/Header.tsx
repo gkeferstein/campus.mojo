@@ -2,15 +2,15 @@
 
 /**
  * Header Component
- * Verwendet die einheitliche MojoTopbar-Komponente aus @mojo/design
+ * Verwendet die einheitliche MojoTopbar-Komponente aus @gkeferstein/design
  * 
  * App entitlements are loaded dynamically from the payments.mojo API
  */
 
-import { MojoTopbar, MojoTopbarSkeleton } from '@mojo/design';
+import { MojoTopbar, MojoTopbarSkeleton } from '@gkeferstein/design';
 import { useAuth } from '@/providers/AuthProvider';
 import { useRouter } from 'next/navigation';
-import type { Tenant, MojoUser } from '@mojo/design';
+import type { Tenant, MojoUser } from '@gkeferstein/design';
 import { useMemo, useEffect, useState, useCallback } from 'react';
 
 // Payments.mojo API URL for fetching app entitlements
