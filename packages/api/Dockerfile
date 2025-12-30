@@ -8,12 +8,12 @@ RUN apk add --no-cache openssl
 
 # Install dependencies
 COPY package*.json ./
-# Configure Git to use HTTPS for private repos
+# Configure npm for GitHub Packages
 ARG GITHUB_TOKEN
 RUN if [ -n "$GITHUB_TOKEN" ]; then \
-      git config --global url."https://${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/" && \
-      git config --global url."https://${GITHUB_TOKEN}@github.com/".insteadOf "ssh://git@github.com/" && \
-      git config --global url."https://${GITHUB_TOKEN}@github.com/".insteadOf "git@github.com:"; \
+      echo "@gkeferstein:registry=https://npm.pkg.github.com" > ~/.npmrc && \
+      echo "//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}" >> ~/.npmrc && \
+      echo "always-auth=true" >> ~/.npmrc; \
     fi
 RUN npm install --legacy-peer-deps
 
