@@ -74,6 +74,10 @@ jobs:
           git config --global url."https://${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
           git config --global url."https://${GITHUB_TOKEN}@github.com/".insteadOf "ssh://git@github.com/"
           git config --global url."https://${GITHUB_TOKEN}@github.com/".insteadOf "git@github.com:"
+          # Disable SSH for npm
+          npm config set git-tag-version false
+          # Force npm to use HTTPS
+          git config --global --unset url."git@github.com:".insteadof || true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -154,6 +158,10 @@ jobs:
           git config --global url."https://${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
           git config --global url."https://${GITHUB_TOKEN}@github.com/".insteadOf "ssh://git@github.com/"
           git config --global url."https://${GITHUB_TOKEN}@github.com/".insteadOf "git@github.com:"
+          # Disable SSH for npm
+          npm config set git-tag-version false
+          # Force npm to use HTTPS
+          git config --global --unset url."git@github.com:".insteadof || true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -355,6 +363,10 @@ jobs:
           git config --global url."https://${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
           git config --global url."https://${GITHUB_TOKEN}@github.com/".insteadOf "ssh://git@github.com/"
           git config --global url."https://${GITHUB_TOKEN}@github.com/".insteadOf "git@github.com:"
+          # Disable SSH for npm
+          npm config set git-tag-version false
+          # Force npm to use HTTPS
+          git config --global --unset url."git@github.com:".insteadof || true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
