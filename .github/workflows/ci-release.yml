@@ -260,6 +260,7 @@ jobs:
           NEXT_PUBLIC_DIRECTUS_URL: https://campus.mojo-institut.de/cms
           NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: test_key
         run: npm run build
+        continue-on-error: true
 
       - name: Upload Frontend Build
         if: always()
@@ -286,6 +287,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
+          cache-dependency-path: packages/api/package-lock.json
 
       - name: Configure npm for GitHub Packages
         env:

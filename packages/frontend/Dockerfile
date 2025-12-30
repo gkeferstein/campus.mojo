@@ -26,7 +26,7 @@ RUN npm install --legacy-peer-deps
 
 # Back to app and copy frontend package.json
 WORKDIR /app
-COPY campus.mojo/packages/frontend/package.json ./
+COPY package.json ./
 
 # Update the @mojo/design path for Docker context
 RUN sed -i 's|file:../../../design.mojo/packages/design|file:/design-system|g' package.json
@@ -60,12 +60,12 @@ COPY --from=deps /app/package.json ./package.json
 COPY --from=deps /app/node_modules ./node_modules
 
 # Copy frontend source files
-COPY campus.mojo/packages/frontend/src ./src
-COPY campus.mojo/packages/frontend/public ./public
-COPY campus.mojo/packages/frontend/next.config.ts ./next.config.ts
-COPY campus.mojo/packages/frontend/tailwind.config.ts ./tailwind.config.ts
-COPY campus.mojo/packages/frontend/postcss.config.mjs ./postcss.config.mjs
-COPY campus.mojo/packages/frontend/tsconfig.json ./tsconfig.json
+COPY src ./src
+COPY public ./public
+COPY next.config.ts ./next.config.ts
+COPY tailwind.config.ts ./tailwind.config.ts
+COPY postcss.config.mjs ./postcss.config.mjs
+COPY tsconfig.json ./tsconfig.json
 
 RUN npm run build
 
