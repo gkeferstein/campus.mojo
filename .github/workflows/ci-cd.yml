@@ -69,9 +69,16 @@ jobs:
           echo "Testing npm config..."
           npm config list
 
+      - name: Configure Git for private repos
+        run: |
+          git config --global url."https://${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Install Dependencies
         env:
           NPM_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         working-directory: ${{ matrix.package.path }}
         run: npm install --legacy-peer-deps
 
@@ -140,9 +147,16 @@ jobs:
           echo "Testing npm config..."
           npm config list
 
+      - name: Configure Git for private repos
+        run: |
+          git config --global url."https://${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Install Dependencies
         env:
           NPM_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         working-directory: packages/api
         run: npm install --legacy-peer-deps
 
@@ -237,10 +251,18 @@ jobs:
           echo "Testing npm config..."
           npm config list
 
+      - name: Configure Git for private repos
+        if: steps.frontend-changes.outputs.has_changes == 'true'
+        run: |
+          git config --global url."https://${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Install Frontend Dependencies
         if: steps.frontend-changes.outputs.has_changes == 'true'
         env:
           NPM_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         working-directory: ./packages/frontend
         run: npm install --legacy-peer-deps
 
@@ -324,9 +346,16 @@ jobs:
           echo "Testing npm config..."
           npm config list
 
+      - name: Configure Git for private repos
+        run: |
+          git config --global url."https://${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Install Dependencies
         env:
           NPM_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         working-directory: packages/api
         run: npm install --legacy-peer-deps
 
