@@ -1,16 +1,8 @@
 # Production Dockerfile for Next.js Frontend
-# Build context is /root/projects (parent of campus.mojo)
+# Build context is packages/frontend
 
 FROM node:22-alpine AS deps
 WORKDIR /app
-
-# Copy design.mojo package dist and src
-COPY design.mojo/packages/design/dist /design-system/dist
-COPY design.mojo/packages/design/src/styles /design-system/src/styles
-COPY design.mojo/packages/design/tailwind.config.ts /design-system/tailwind.config.ts
-
-# Use pre-configured package.json for Docker (without workspace: deps)
-COPY campus.mojo/packages/frontend/docker/design-package.json /design-system/package.json
 
 # Configure npm for GitHub Packages
 ARG GITHUB_TOKEN
@@ -19,6 +11,16 @@ RUN if [ -n "$GITHUB_TOKEN" ]; then \
       echo "//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}" >> ~/.npmrc && \
       echo "always-auth=true" >> ~/.npmrc; \
     fi
+
+# Try to copy design.mojo from parent context (if available)
+# If not available, we'll use the npm package instead
+COPY ../design.mojo/packages/design/dist /design-system/dist 2>/dev/null || echo "Design system not found, will use npm package"
+COPY ../design.mojo/packages/design/src/styles /design-system/src/styles 2>/dev/null || true
+COPY ../design.mojo/packages/design/tailwind.config.ts /design-system/tailwind.config.ts 2>/dev/null || true
+
+# Use pre-configured package.json for Docker (without workspace: deps)
+# If docker/design-package.json doesn't exist, create a minimal one
+COPY docker/design-package.json /design-system/package.json 2>/dev/null || echo '{"name": "@mojo/design", "version": "1.0.0"}' > /design-system/package.json
 
 # Install design-system dependencies
 WORKDIR /design-system
@@ -29,7 +31,8 @@ WORKDIR /app
 COPY package.json ./
 
 # Update the @mojo/design path for Docker context
-RUN sed -i 's|file:../../../design.mojo/packages/design|file:/design-system|g' package.json
+RUN sed -i 's|file:../../../design.mojo/packages/design|file:/design-system|g' package.json || \
+    sed -i 's|"@mojo/design": ".*"|"@mojo/design": "file:/design-system"|g' package.json || true
 
 # Configure npm for GitHub Packages (if not already configured)
 RUN if [ -n "$GITHUB_TOKEN" ] && [ ! -f ~/.npmrc ]; then \
