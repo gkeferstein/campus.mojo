@@ -574,7 +574,7 @@ jobs:
           build-args: |
             NEXT_PUBLIC_API_URL=https://campus.mojo-institut.de/api
             NEXT_PUBLIC_DIRECTUS_URL=https://campus.mojo-institut.de/cms
-            NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
+            NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || 'pk_test_placeholder' }}
             GIT_COMMIT=${{ github.sha }}
             BUILD_DATE=${{ github.event.head_commit.timestamp || github.run_started_at }}
             GIT_BRANCH=${{ github.ref_name }}
