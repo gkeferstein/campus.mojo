@@ -119,24 +119,28 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
           cache-dependency-path: packages/api/package-lock.json
-          registry-url: 'https://registry.npmjs.org'
 
-      - name: Setup npm for GitHub Packages
+      - name: Configure npm for GitHub Packages
+        env:
+          NPM_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Ensure .npmrc exists and add GitHub Packages config
-          if [ -f ~/.npmrc ]; then
-            # Remove existing @gkeferstein registry line if present
-            sed -i '/@gkeferstein:registry/d' ~/.npmrc
-            sed -i '/npm.pkg.github.com\/:_authToken/d' ~/.npmrc
-          fi
-          echo "@gkeferstein:registry=https://npm.pkg.github.com" >> ~/.npmrc
-          echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> ~/.npmrc
-          echo "✅ .npmrc configuration:"
+          echo "Configuring npm for GitHub Packages..."
+          rm -f ~/.npmrc
+          echo "@gkeferstein:registry=https://npm.pkg.github.com" > ~/.npmrc
+          echo "//npm.pkg.github.com/:_authToken=${NPM_TOKEN}" >> ~/.npmrc
+          echo "always-auth=true" >> ~/.npmrc
+          echo ""
+          echo "Final .npmrc:"
           cat ~/.npmrc
+          echo ""
+          echo "Testing npm config..."
+          npm config list
 
       - name: Install Dependencies
+        env:
+          NPM_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         working-directory: packages/api
-        run: npm ci --legacy-peer-deps || npm install --legacy-peer-deps
+        run: npm install --legacy-peer-deps
 
       - name: Setup Test Database
         env:
