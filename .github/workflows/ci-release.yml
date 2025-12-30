@@ -190,6 +190,7 @@ jobs:
       - name: Run Unit Tests with Coverage
         env:
           DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_campus_lms
+          NPM_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         working-directory: packages/api
         run: |
           npm test -- --coverage || echo "⚠️ Tests not configured"
