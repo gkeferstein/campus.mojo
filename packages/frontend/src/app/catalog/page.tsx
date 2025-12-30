@@ -6,6 +6,8 @@
  * Shows what's available to purchase and what's already unlocked
  */
 
+export const dynamic = 'force-dynamic';
+
 import { motion } from 'framer-motion';
 import { 
   Check, 
@@ -420,8 +422,6 @@ function CatalogContent() {
     </div>
   );
 }
-
-export const dynamic = 'force-dynamic';
 
 export default function CatalogPage() {
   return (

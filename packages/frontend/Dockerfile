@@ -52,7 +52,7 @@ COPY tailwind.config.ts ./tailwind.config.ts
 COPY postcss.config.mjs ./postcss.config.mjs
 COPY tsconfig.json ./tsconfig.json
 
-RUN npm run build || (echo "⚠️ Build failed, but continuing..." && exit 0)
+RUN npm run build
 
 FROM node:22-alpine AS runner
 WORKDIR /app
