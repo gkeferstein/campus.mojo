@@ -52,8 +52,16 @@ jobs:
 
       - name: Setup npm for GitHub Packages
         run: |
+          # Ensure .npmrc exists and add GitHub Packages config
+          if [ -f ~/.npmrc ]; then
+            # Remove existing @gkeferstein registry line if present
+            sed -i '/@gkeferstein:registry/d' ~/.npmrc
+            sed -i '/npm.pkg.github.com\/:_authToken/d' ~/.npmrc
+          fi
           echo "@gkeferstein:registry=https://npm.pkg.github.com" >> ~/.npmrc
           echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> ~/.npmrc
+          echo "✅ .npmrc configuration:"
+          cat ~/.npmrc
 
       - name: Install Dependencies
         working-directory: ${{ matrix.package.path }}
@@ -111,8 +119,16 @@ jobs:
 
       - name: Setup npm for GitHub Packages
         run: |
+          # Ensure .npmrc exists and add GitHub Packages config
+          if [ -f ~/.npmrc ]; then
+            # Remove existing @gkeferstein registry line if present
+            sed -i '/@gkeferstein:registry/d' ~/.npmrc
+            sed -i '/npm.pkg.github.com\/:_authToken/d' ~/.npmrc
+          fi
           echo "@gkeferstein:registry=https://npm.pkg.github.com" >> ~/.npmrc
           echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> ~/.npmrc
+          echo "✅ .npmrc configuration:"
+          cat ~/.npmrc
 
       - name: Install Dependencies
         working-directory: packages/api
@@ -271,8 +287,16 @@ jobs:
 
       - name: Setup npm for GitHub Packages
         run: |
+          # Ensure .npmrc exists and add GitHub Packages config
+          if [ -f ~/.npmrc ]; then
+            # Remove existing @gkeferstein registry line if present
+            sed -i '/@gkeferstein:registry/d' ~/.npmrc
+            sed -i '/npm.pkg.github.com\/:_authToken/d' ~/.npmrc
+          fi
           echo "@gkeferstein:registry=https://npm.pkg.github.com" >> ~/.npmrc
           echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> ~/.npmrc
+          echo "✅ .npmrc configuration:"
+          cat ~/.npmrc
 
       - name: Install Dependencies
         working-directory: packages/api
