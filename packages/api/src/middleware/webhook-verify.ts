@@ -7,6 +7,9 @@ if (!WEBHOOK_SECRET) {
   throw new Error('WEBHOOK_SECRET environment variable is required');
 }
 
+// Type assertion after validation
+const webhookSecret: string = WEBHOOK_SECRET;
+
 export async function verifyWebhook(
   request: FastifyRequest,
   reply: FastifyReply
@@ -18,7 +21,7 @@ export async function verifyWebhook(
   }
 
   const body = JSON.stringify(request.body);
-  const expectedSignature = createHmac('sha256', WEBHOOK_SECRET)
+  const expectedSignature = createHmac('sha256', webhookSecret)
     .update(body)
     .digest('hex');
 

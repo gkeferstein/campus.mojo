@@ -26,8 +26,8 @@ declare module 'fastify' {
   interface FastifyRequest {
     user?: AuthUser;
     /** @mojo/tenant compatible tenant context */
-    tenant?: MojoTenant | null;
-    tenantContext?: TenantContext | null;
+    tenant: MojoTenant | null;
+    tenantContext: TenantContext | null;
   }
 }
 
@@ -243,10 +243,8 @@ export async function authenticate(
 
     // Resolve tenant
     const { tenant, source } = await resolveTenant(request, user.id);
-    if (tenant) {
-      request.tenant = tenant;
-      request.tenantContext = { tenant, source: source as any };
-    }
+    request.tenant = tenant;
+    request.tenantContext = tenant ? { tenant, source: source as any } : null;
 
   } catch (err: any) {
     logger.error({ 
@@ -273,10 +271,8 @@ export async function optionalAuth(
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       // Still try to resolve tenant from headers
       const { tenant, source } = await resolveTenant(request);
-      if (tenant) {
-        request.tenant = tenant;
-        request.tenantContext = { tenant, source: source as any };
-      }
+      request.tenant = tenant;
+      request.tenantContext = tenant ? { tenant, source: source as any } : null;
       return;
     }
 
@@ -308,10 +304,11 @@ export async function optionalAuth(
       
       // Resolve tenant
       const { tenant, source } = await resolveTenant(request, user.id);
-      if (tenant) {
-        request.tenant = tenant;
-        request.tenantContext = { tenant, source: source as any };
-      }
+      request.tenant = tenant;
+      request.tenantContext = tenant ? { tenant, source: source as any } : null;
+    } else {
+      request.tenant = null;
+      request.tenantContext = null;
     }
   } catch {
     // Token is optional, so we don't throw an error

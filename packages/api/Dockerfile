@@ -8,7 +8,8 @@ RUN apk add --no-cache openssl
 
 # Install dependencies
 COPY package*.json ./
-RUN sed -i '/@mojo\/tenant/d' package.json && npm install --legacy-peer-deps
+# Remove @mojo/tenant dependency (using node to parse/modify JSON)
+RUN node -e "const fs=require('fs'); const pkg=JSON.parse(fs.readFileSync('package.json','utf8')); delete pkg.dependencies['@mojo/tenant']; fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));" && npm install --legacy-peer-deps
 
 # Create stub for @mojo/tenant AFTER npm install
 RUN mkdir -p node_modules/@mojo/tenant && \

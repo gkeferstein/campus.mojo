@@ -118,21 +118,30 @@ jobs:
           npx prisma migrate deploy || echo "⚠️ Migrations skipped"
 
       - name: Run Unit Tests
+        id: test
         env:
           DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_campus_lms
         working-directory: packages/api
         run: |
-          npm test -- --coverage || echo "⚠️ Tests not configured"
+          if npm run test 2>/dev/null; then
+            echo "✅ Tests passed"
+            echo "has_tests=true" >> $GITHUB_OUTPUT
+          else
+            echo "⚠️ Tests not configured or failed (non-critical)"
+            echo "has_tests=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
         continue-on-error: true
 
       - name: Upload Test Results
-        if: always()
+        if: steps.test.outputs.has_tests == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: backend-test-results
           path: |
             packages/api/coverage/
           retention-days: 7
+          if-no-files-found: ignore
 
   # ============================================
   # PARALLEL FRONTEND CHECKS (nur bei Frontend-Änderungen)
@@ -189,6 +198,7 @@ jobs:
         continue-on-error: true
 
       - name: Frontend Build Test
+        id: frontend-build
         if: steps.frontend-changes.outputs.has_changes == 'true'
         working-directory: ./packages/frontend
         env:
@@ -199,12 +209,13 @@ jobs:
         continue-on-error: true
 
       - name: Upload Frontend Build Artifacts
-        if: always() && steps.frontend-changes.outputs.has_changes == 'true'
+        if: steps.frontend-build.outcome == 'success' && steps.frontend-changes.outputs.has_changes == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: frontend-build
           path: packages/frontend/.next
           retention-days: 1
+          if-no-files-found: ignore
 
   # ============================================
   # PARALLEL DATABASE CHECKS
@@ -664,7 +675,7 @@ jobs:
           fi
 
       - name: Send Email Notification (on failure)
-        if: steps.status.outputs.status == 'failure'
+        if: steps.status.outputs.status == 'failure' && secrets.EMAIL_RECIPIENT != ''
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com

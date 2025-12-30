@@ -7,7 +7,7 @@ export function errorHandler(
   error: FastifyError | Error,
   request: FastifyRequest,
   reply: FastifyReply
-): void {
+): void | Promise<void> {
   const requestId = request.id || 'unknown';
   const requestLogger = logger.child({ requestId });
 
@@ -19,7 +19,7 @@ export function errorHandler(
       details: error.details 
     }, error.message);
     
-    return reply.status(error.statusCode).send({
+    reply.status(error.statusCode).send({
       success: false,
       error: {
         code: error.code,
@@ -27,13 +27,14 @@ export function errorHandler(
         details: error.details,
       },
     });
+    return;
   }
 
   // Zod validation errors
   if (error instanceof ZodError) {
     requestLogger.warn({ validationErrors: error.errors }, 'Validation error');
     
-    return reply.status(400).send({
+    reply.status(400).send({
       success: false,
       error: {
         code: 'VALIDATION_ERROR',
@@ -46,6 +47,7 @@ export function errorHandler(
         },
       },
     });
+    return;
   }
 
   // JWT errors
@@ -53,24 +55,26 @@ export function errorHandler(
     error.code === 'FST_JWT_NO_AUTHORIZATION_IN_HEADER' ||
     error.code === 'FST_JWT_AUTHORIZATION_TOKEN_INVALID'
   )) {
-    return reply.status(401).send({
+    reply.status(401).send({
       success: false,
       error: {
         code: 'UNAUTHORIZED',
         message: 'Nicht authentifiziert',
       },
     });
+    return;
   }
 
   // Rate limit errors
   if ('statusCode' in error && error.statusCode === 429) {
-    return reply.status(429).send({
+    reply.status(429).send({
       success: false,
       error: {
         code: 'RATE_LIMITED',
         message: 'Zu viele Anfragen',
       },
     });
+    return;
   }
 
   // Unknown errors - log and return generic error
@@ -81,7 +85,7 @@ export function errorHandler(
     ? 'Ein interner Fehler ist aufgetreten'
     : ('message' in error ? error.message : 'Unknown error');
 
-  return reply.status(statusCode).send({
+  reply.status(statusCode).send({
     success: false,
     error: {
       code: 'INTERNAL_ERROR',
