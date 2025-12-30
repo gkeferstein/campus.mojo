@@ -1,5 +1,9 @@
 name: CI - Main Branch (Fast Pipeline)
 
+permissions:
+  contents: read
+  packages: read
+
 on:
   push:
     branches:
