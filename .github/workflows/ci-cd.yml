@@ -46,14 +46,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Configure Git for private repos (early)
-        run: |
-          git config --global url."https://${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
-          git config --global url."https://${GITHUB_TOKEN}@github.com/".insteadOf "ssh://git@github.com/"
-          git config --global url."https://${GITHUB_TOKEN}@github.com/".insteadOf "git@github.com:"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -81,7 +73,6 @@ jobs:
       - name: Install Dependencies
         env:
           NPM_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         working-directory: ${{ matrix.package.path }}
         run: npm install --legacy-peer-deps
 
@@ -126,14 +117,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Configure Git for private repos (early)
-        run: |
-          git config --global url."https://${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
-          git config --global url."https://${GITHUB_TOKEN}@github.com/".insteadOf "ssh://git@github.com/"
-          git config --global url."https://${GITHUB_TOKEN}@github.com/".insteadOf "git@github.com:"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -328,14 +311,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Configure Git for private repos (early)
-        run: |
-          git config --global url."https://${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
-          git config --global url."https://${GITHUB_TOKEN}@github.com/".insteadOf "ssh://git@github.com/"
-          git config --global url."https://${GITHUB_TOKEN}@github.com/".insteadOf "git@github.com:"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
