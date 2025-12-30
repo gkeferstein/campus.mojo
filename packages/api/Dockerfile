@@ -8,14 +8,14 @@ RUN apk add --no-cache openssl
 
 # Install dependencies
 COPY package*.json ./
-# Remove @mojo/tenant dependency (using node to parse/modify JSON)
-RUN node -e "const fs=require('fs'); const pkg=JSON.parse(fs.readFileSync('package.json','utf8')); delete pkg.dependencies['@mojo/tenant']; fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));" && npm install --legacy-peer-deps
-
-# Create stub for @mojo/tenant AFTER npm install
-RUN mkdir -p node_modules/@mojo/tenant && \
-    echo '{"name":"@mojo/tenant","version":"1.0.0","main":"index.js","types":"index.d.ts"}' > node_modules/@mojo/tenant/package.json && \
-    echo 'export const TENANT_HEADERS = { tenantId: "x-tenant-id", tenantSlug: "x-tenant-slug" }; export function extractTenantFromHeaders() { return null; }' > node_modules/@mojo/tenant/index.js && \
-    echo 'export interface Tenant { id: string; slug: string; name: string; clerkOrgId?: string; isPersonal: boolean; status: "active" | "pending" | "suspended"; createdAt: Date; updatedAt: Date; } export interface TenantContext { tenant: Tenant; source: string; } export declare const TENANT_HEADERS: { tenantId: string; tenantSlug: string; }; export declare function extractTenantFromHeaders(headers: Record<string, string>): { type: "id" | "slug"; value: string } | null;' > node_modules/@mojo/tenant/index.d.ts
+# Configure Git to use HTTPS for private repos
+ARG GITHUB_TOKEN
+RUN if [ -n "$GITHUB_TOKEN" ]; then \
+      git config --global url."https://${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/" && \
+      git config --global url."https://${GITHUB_TOKEN}@github.com/".insteadOf "ssh://git@github.com/" && \
+      git config --global url."https://${GITHUB_TOKEN}@github.com/".insteadOf "git@github.com:"; \
+    fi
+RUN npm install --legacy-peer-deps
 
 # Copy source and build
 COPY . .

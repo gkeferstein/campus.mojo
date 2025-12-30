@@ -72,6 +72,8 @@ jobs:
       - name: Configure Git for private repos
         run: |
           git config --global url."https://${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
+          git config --global url."https://${GITHUB_TOKEN}@github.com/".insteadOf "ssh://git@github.com/"
+          git config --global url."https://${GITHUB_TOKEN}@github.com/".insteadOf "git@github.com:"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -150,6 +152,8 @@ jobs:
       - name: Configure Git for private repos
         run: |
           git config --global url."https://${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
+          git config --global url."https://${GITHUB_TOKEN}@github.com/".insteadOf "ssh://git@github.com/"
+          git config --global url."https://${GITHUB_TOKEN}@github.com/".insteadOf "git@github.com:"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -349,6 +353,8 @@ jobs:
       - name: Configure Git for private repos
         run: |
           git config --global url."https://${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
+          git config --global url."https://${GITHUB_TOKEN}@github.com/".insteadOf "ssh://git@github.com/"
+          git config --global url."https://${GITHUB_TOKEN}@github.com/".insteadOf "git@github.com:"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -433,6 +439,7 @@ jobs:
             GIT_COMMIT=${{ github.sha }}
             BUILD_DATE=${{ github.event.head_commit.timestamp || github.run_started_at }}
             GIT_BRANCH=${{ github.ref_name }}
+            GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
