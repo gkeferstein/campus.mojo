@@ -29,7 +29,7 @@ jobs:
   code-quality:
     name: Code Quality Checks
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 1.5
     strategy:
       matrix:
         package:
@@ -51,7 +51,7 @@ jobs:
 
       - name: Install Dependencies
         working-directory: ${{ matrix.package.path }}
-        run: npm ci
+        run: npm ci --legacy-peer-deps || npm install --legacy-peer-deps
 
       - name: TypeScript Compile Check
         working-directory: ${{ matrix.package.path }}
@@ -75,7 +75,7 @@ jobs:
   backend-tests:
     name: Backend Unit Tests
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 1.5
     services:
       postgres:
         image: postgres:16-alpine
@@ -104,7 +104,7 @@ jobs:
 
       - name: Install Dependencies
         working-directory: packages/api
-        run: npm ci
+        run: npm ci --legacy-peer-deps || npm install --legacy-peer-deps
 
       - name: Setup Test Database
         env:
@@ -149,7 +149,7 @@ jobs:
   frontend-checks:
     name: Frontend Checks
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 1.5
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -183,7 +183,7 @@ jobs:
       - name: Install Frontend Dependencies
         if: steps.frontend-changes.outputs.has_changes == 'true'
         working-directory: ./packages/frontend
-        run: npm ci
+        run: npm ci --legacy-peer-deps || npm install --legacy-peer-deps
 
       - name: Frontend Type Check
         if: steps.frontend-changes.outputs.has_changes == 'true'
@@ -223,7 +223,7 @@ jobs:
   database-checks:
     name: Database Migration & Schema Checks
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 1.5
     services:
       postgres:
         image: postgres:16-alpine
@@ -251,7 +251,7 @@ jobs:
 
       - name: Install Dependencies
         working-directory: packages/api
-        run: npm ci
+        run: npm ci --legacy-peer-deps || npm install --legacy-peer-deps
 
       - name: Setup Test Database
         env:
@@ -285,7 +285,7 @@ jobs:
   build-images:
     name: Build & Push Docker Images
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 1.5
     needs: [code-quality, backend-tests]
     if: always() && (needs.code-quality.result == 'success' || needs.code-quality.result == 'failure') && (needs.backend-tests.result == 'success' || needs.backend-tests.result == 'failure')
     permissions:
@@ -394,7 +394,7 @@ jobs:
   deploy:
     name: Deploy to Server
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 1.5
     needs: [build-images]
     if: needs.build-images.result == 'success' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
     environment:
