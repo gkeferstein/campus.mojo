@@ -48,6 +48,12 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
           cache-dependency-path: ${{ matrix.package.path }}/package-lock.json
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Setup npm for GitHub Packages
+        run: |
+          echo "@gkeferstein:registry=https://npm.pkg.github.com" >> ~/.npmrc
+          echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> ~/.npmrc
 
       - name: Install Dependencies
         working-directory: ${{ matrix.package.path }}
@@ -101,6 +107,12 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
           cache-dependency-path: packages/api/package-lock.json
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Setup npm for GitHub Packages
+        run: |
+          echo "@gkeferstein:registry=https://npm.pkg.github.com" >> ~/.npmrc
+          echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> ~/.npmrc
 
       - name: Install Dependencies
         working-directory: packages/api
@@ -179,6 +191,13 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
           cache-dependency-path: packages/frontend/package-lock.json
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Setup npm for GitHub Packages
+        if: steps.frontend-changes.outputs.has_changes == 'true'
+        run: |
+          echo "@gkeferstein:registry=https://npm.pkg.github.com" >> ~/.npmrc
+          echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> ~/.npmrc
 
       - name: Install Frontend Dependencies
         if: steps.frontend-changes.outputs.has_changes == 'true'
@@ -248,6 +267,12 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
           cache-dependency-path: packages/api/package-lock.json
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Setup npm for GitHub Packages
+        run: |
+          echo "@gkeferstein:registry=https://npm.pkg.github.com" >> ~/.npmrc
+          echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> ~/.npmrc
 
       - name: Install Dependencies
         working-directory: packages/api
