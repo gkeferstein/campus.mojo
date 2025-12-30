@@ -19,6 +19,11 @@ export async function quizRoutes(fastify: FastifyInstance): Promise<void> {
   // POST /quiz/:quizId/start - Start a quiz attempt
   fastify.post('/quiz/:quizId/start', {
     preHandler: [authenticate],
+    schema: {
+      params: z.object({
+        quizId: z.string().uuid(),
+      }),
+    },
   }, async (request, reply) => {
     const { quizId } = request.params as { quizId: string };
 
@@ -90,6 +95,11 @@ export async function quizRoutes(fastify: FastifyInstance): Promise<void> {
   // POST /quiz/:quizId/submit - Submit quiz answers
   fastify.post('/quiz/:quizId/submit', {
     preHandler: [authenticate],
+    schema: {
+      params: z.object({
+        quizId: z.string().uuid(),
+      }),
+    },
   }, async (request, reply) => {
     const { quizId } = request.params as { quizId: string };
     const body = submitSchema.parse(request.body);
@@ -207,6 +217,11 @@ export async function quizRoutes(fastify: FastifyInstance): Promise<void> {
   // GET /quiz/:quizId/attempts - Get user's quiz attempts
   fastify.get('/quiz/:quizId/attempts', {
     preHandler: [authenticate],
+    schema: {
+      params: z.object({
+        quizId: z.string().uuid(),
+      }),
+    },
   }, async (request, reply) => {
     const { quizId } = request.params as { quizId: string };
 
@@ -224,6 +239,7 @@ export async function quizRoutes(fastify: FastifyInstance): Promise<void> {
     return reply.send(attempts);
   });
 }
+
 
 
 

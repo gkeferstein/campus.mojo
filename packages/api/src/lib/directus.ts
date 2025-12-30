@@ -2,6 +2,7 @@
 
 const DIRECTUS_URL = process.env.DIRECTUS_URL || 'http://directus:8055';
 const DIRECTUS_TOKEN = process.env.DIRECTUS_TOKEN;
+const DIRECTUS_TIMEOUT_MS = parseInt(process.env.DIRECTUS_TIMEOUT_MS || '5000', 10);
 
 interface DirectusResponse<T> {
   data: T;
@@ -23,20 +24,37 @@ async function directusFetch<T>(
     headers['Authorization'] = `Bearer ${DIRECTUS_TOKEN}`;
   }
 
-  const response = await fetch(`${DIRECTUS_URL}${endpoint}`, {
-    ...options,
-    headers: {
-      ...headers,
-      ...options.headers,
-    },
-  });
+  // Create AbortController for timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), DIRECTUS_TIMEOUT_MS);
 
-  if (!response.ok) {
-    throw new Error(`Directus API error: ${response.status} ${response.statusText}`);
+  try {
+    const response = await fetch(`${DIRECTUS_URL}${endpoint}`, {
+      ...options,
+      signal: controller.signal,
+      headers: {
+        ...headers,
+        ...options.headers,
+      },
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      throw new Error(`Directus API error: ${response.status} ${response.statusText}`);
+    }
+
+    const json = await response.json() as DirectusResponse<T>;
+    return json.data;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error(`Directus request timeout after ${DIRECTUS_TIMEOUT_MS}ms`);
+    }
+    
+    throw error;
   }
-
-  const json = await response.json() as DirectusResponse<T>;
-  return json.data;
 }
 
 // ============================================
@@ -177,6 +195,7 @@ export async function getTotalLessonsForCourse(courseId: string): Promise<number
     return 0;
   }
 }
+
 
 
 

@@ -11,6 +11,7 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import { createClerkClient, verifyToken } from '@clerk/backend';
 import { prisma } from '../lib/prisma.js';
 import { Tenant as MojoTenant, TenantContext, TENANT_HEADERS, extractTenantFromHeaders } from '@mojo/tenant';
+import { logger } from '../lib/logger.js';
 
 export interface AuthUser {
   id: string;
@@ -158,7 +159,7 @@ async function getOrCreateUser(
         deletedAt: true,
       },
     });
-    console.log(`📝 User created via JWT auth: ${clerkUserId}`);
+    logger.info({ clerkUserId, email }, 'User created via JWT auth');
   } else {
     // Update user info if changed
     if (
@@ -211,7 +212,7 @@ export async function authenticate(
     const secretKey = process.env.CLERK_SECRET_KEY;
 
     if (!secretKey) {
-      console.error('CLERK_SECRET_KEY is not configured');
+      logger.error('CLERK_SECRET_KEY is not configured');
       return reply.status(500).send({ error: 'Authentication not configured' });
     }
 
@@ -248,12 +249,12 @@ export async function authenticate(
     }
 
   } catch (err: any) {
-    console.error('Auth error:', err.message, err.stack);
-    console.error('Auth error details:', JSON.stringify({ 
+    logger.error({ 
+      err, 
       name: err.name, 
       code: err.code,
       clerkError: err.clerkError 
-    }));
+    }, 'Auth error');
     return reply.status(401).send({ error: 'Invalid or expired token' });
   }
 }

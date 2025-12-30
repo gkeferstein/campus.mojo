@@ -44,7 +44,9 @@ Campus.mojo funktioniert so:
 POSTGRES_USER=campus
 POSTGRES_PASSWORD=<secure-password>
 POSTGRES_DB=campus_lms
-DATABASE_URL=postgresql://campus:<password>@db:5432/campus_lms
+# Connection Pooling: connection_limit (default: 10), pool_timeout (default: 10s)
+# Für Production: connection_limit=20, pool_timeout=20
+DATABASE_URL=postgresql://campus:<password>@db:5432/campus_lms?connection_limit=10&pool_timeout=20
 
 # ============================================
 # CLERK AUTHENTICATION

@@ -12,6 +12,11 @@ export async function lessonsRoutes(fastify: FastifyInstance): Promise<void> {
   // GET /lessons/:lessonSlug - Get lesson content
   fastify.get('/lessons/:lessonSlug', {
     preHandler: [authenticate],
+    schema: {
+      params: z.object({
+        lessonSlug: z.string().min(1).max(255),
+      }),
+    },
   }, async (request, reply) => {
     const { lessonSlug } = request.params as { lessonSlug: string };
 
@@ -64,6 +69,11 @@ export async function lessonsRoutes(fastify: FastifyInstance): Promise<void> {
   // POST /lessons/:lessonId/complete - Mark lesson as complete
   fastify.post('/lessons/:lessonId/complete', {
     preHandler: [authenticate],
+    schema: {
+      params: z.object({
+        lessonId: z.string().uuid(),
+      }),
+    },
   }, async (request, reply) => {
     const { lessonId } = request.params as { lessonId: string };
     const body = completeSchema.parse(request.body || {});
@@ -129,6 +139,11 @@ export async function lessonsRoutes(fastify: FastifyInstance): Promise<void> {
   // POST /lessons/:lessonId/progress - Update time spent (without completing)
   fastify.post('/lessons/:lessonId/progress', {
     preHandler: [authenticate],
+    schema: {
+      params: z.object({
+        lessonId: z.string().uuid(),
+      }),
+    },
   }, async (request, reply) => {
     const { lessonId } = request.params as { lessonId: string };
     const body = z.object({
@@ -187,6 +202,7 @@ async function updateCourseProgress(userId: string, courseId: string): Promise<v
     },
   });
 }
+
 
 
 

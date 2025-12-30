@@ -1,7 +1,11 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { createHmac, timingSafeEqual } from 'crypto';
 
-const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || 'development-webhook-secret';
+const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET;
+
+if (!WEBHOOK_SECRET) {
+  throw new Error('WEBHOOK_SECRET environment variable is required');
+}
 
 export async function verifyWebhook(
   request: FastifyRequest,
@@ -26,6 +30,7 @@ export async function verifyWebhook(
     return reply.status(401).send({ error: 'Invalid webhook signature' });
   }
 }
+
 
 
 

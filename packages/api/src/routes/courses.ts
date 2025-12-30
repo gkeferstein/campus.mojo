@@ -1,7 +1,9 @@
 import { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { authenticate, optionalAuth } from '../middleware/auth.js';
 import { prisma } from '../lib/prisma.js';
 import { getCourses, getCourseBySlug, type Course, type Module, type Lesson } from '../lib/directus.js';
+import { logger } from '../lib/logger.js';
 
 interface CourseWithProgress extends Course {
   enrolled: boolean;
@@ -29,7 +31,7 @@ export async function coursesRoutes(fastify: FastifyInstance): Promise<void> {
     try {
       courses = await getCourses(tenantId);
     } catch (error) {
-      console.warn('Directus not available or courses collection not configured:', (error as Error).message);
+      logger.warn({ err: error }, 'Directus not available or courses collection not configured');
       // Return empty array - courses need to be set up in Directus CMS
     }
 
@@ -80,6 +82,11 @@ export async function coursesRoutes(fastify: FastifyInstance): Promise<void> {
   // GET /courses/:courseSlug - Get single course with full content tree
   fastify.get('/courses/:courseSlug', {
     preHandler: [authenticate],
+    schema: {
+      params: z.object({
+        courseSlug: z.string().min(1).max(255),
+      }),
+    },
   }, async (request, reply) => {
     const { courseSlug } = request.params as { courseSlug: string };
 
@@ -163,6 +170,11 @@ export async function coursesRoutes(fastify: FastifyInstance): Promise<void> {
   // POST /courses/:courseId/enroll - Enroll in a course
   fastify.post('/courses/:courseId/enroll', {
     preHandler: [authenticate],
+    schema: {
+      params: z.object({
+        courseId: z.string().uuid(),
+      }),
+    },
   }, async (request, reply) => {
     const { courseId } = request.params as { courseId: string };
 

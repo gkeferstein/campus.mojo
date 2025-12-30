@@ -22,12 +22,13 @@ export async function userVariablesRoutes(fastify: FastifyInstance): Promise<voi
   // GET /user-variables?toolSlug=xxx
   fastify.get('/user-variables', {
     preHandler: [authenticate],
+    schema: {
+      querystring: z.object({
+        toolSlug: z.string().min(1).max(100),
+      }),
+    },
   }, async (request, reply) => {
-    const { toolSlug } = request.query as { toolSlug?: string };
-
-    if (!toolSlug) {
-      return reply.status(400).send({ error: 'toolSlug query parameter required' });
-    }
+    const { toolSlug } = request.query as { toolSlug: string };
 
     const variables = await prisma.userVariable.findMany({
       where: {

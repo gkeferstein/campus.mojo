@@ -2,20 +2,12 @@
 
 /**
  * Header Component
- * Uses MOJO Design System navigation components for the topbar
- * Note: MojoShell provides the outer header wrapper, so we only provide the content here
+ * Verwendet die einheitliche MojoTopbar-Komponente aus @mojo/design
  * 
  * App entitlements are loaded dynamically from the payments.mojo API
  */
 
-import {
-  MojoAppSwitcher,
-  MojoUserMenu,
-  TenantSwitcher,
-  MojoLogo,
-  MOJO_APPS,
-  filterAppsByEntitlements,
-} from '@mojo/design';
+import { MojoTopbar, MojoTopbarSkeleton } from '@mojo/design';
 import { useAuth } from '@/providers/AuthProvider';
 import { useRouter } from 'next/navigation';
 import type { Tenant, MojoUser } from '@mojo/design';
@@ -92,13 +84,6 @@ export function Header() {
     console.log('Switching to tenant:', tenant.id);
   }, []);
 
-  // Filter apps based on dynamically loaded entitlements
-  // IMPORTANT: useMemo must be called before any early returns (Rules of Hooks)
-  const visibleApps = useMemo(
-    () => filterAppsByEntitlements(MOJO_APPS, appEntitlements),
-    [appEntitlements]
-  );
-
   // Map auth user to MojoUser format (memoized, must be before early returns)
   const mojoUser: MojoUser | null = useMemo(() => {
     if (!user) return null;
@@ -128,49 +113,16 @@ export function Header() {
     return [currentTenant];
   }, [currentTenant]);
 
-  // If no user, show minimal header with just the logo
-  if (!user || !mojoUser || !currentTenant) {
-    return (
-      <div className="flex w-full items-center justify-center px-4">
-        <MojoLogo size="sm" mode="dark" />
-      </div>
-    );
-  }
-
-  // Show loading state while fetching entitlements
-  if (isLoadingEntitlements) {
-    return (
-      <div className="flex w-full items-center justify-center px-4">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-      </div>
-    );
-  }
-
   return (
-    <div className="flex w-full items-center gap-2 px-4">
-      {/* Left: App Switcher */}
-      <MojoAppSwitcher
-        apps={visibleApps}
-        currentApp="campus"
-      />
-
-      {/* Center: Spacer */}
-      <div className="flex-1" />
-
-      {/* Right: Tenant Switcher + User Menu */}
-      <div className="flex items-center gap-1">
-        <TenantSwitcher
-          currentTenant={currentTenant}
-          tenants={tenants}
-          onTenantChange={handleTenantChange}
-          variant="compact"
-        />
-        <MojoUserMenu
-          user={mojoUser}
-          tenant={currentTenant}
-          onLogout={handleLogout}
-        />
-      </div>
-    </div>
+    <MojoTopbar
+      currentApp="campus"
+      user={mojoUser}
+      tenant={currentTenant}
+      tenants={tenants}
+      entitlements={appEntitlements}
+      onTenantChange={handleTenantChange}
+      onLogout={handleLogout}
+      isLoading={isLoadingEntitlements}
+    />
   );
 }

@@ -29,14 +29,24 @@ WORKDIR /app
 # Install wget for healthcheck and openssl for Prisma
 RUN apk add --no-cache wget openssl
 
+# Create non-root user
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nodejs
+
 # Copy built files
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/prisma ./prisma
 
+# Change ownership to non-root user
+RUN chown -R nodejs:nodejs /app
+
 # Generate Prisma client in production
 RUN npx prisma generate
+
+# Switch to non-root user
+USER nodejs
 
 ENV PORT=3001
 

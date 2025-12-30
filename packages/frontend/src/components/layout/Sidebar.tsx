@@ -2,13 +2,12 @@
 
 /**
  * Dashboard Sidebar Component
- * Uses MOJO Design System MojoSidebar for consistent navigation
+ * Uses MOJO Design System UnifiedSidebar for consistent navigation
  */
 
-import { useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { MojoSidebar, MojoLogo, MojoIcon } from '@mojo/design';
-import type { SidebarItem } from '@mojo/design';
+import { UnifiedSidebar } from '@mojo/design';
+import type { UnifiedSidebarSectionConfig } from '@mojo/design';
 import {
   LayoutDashboard,
   GraduationCap,
@@ -19,19 +18,11 @@ import {
   BarChart3,
 } from 'lucide-react';
 
-// Define SidebarSection type
-interface SidebarSection {
-  id: string;
-  title?: string;
-  items: SidebarItem[];
-}
-
 export function Sidebar() {
   const pathname = usePathname();
-  const [collapsed, setCollapsed] = useState(false);
 
   // Build navigation sections for Campus LMS
-  const sections: SidebarSection[] = [
+  const sections: UnifiedSidebarSectionConfig[] = [
     {
       id: 'main',
       title: 'Navigation',
@@ -41,14 +32,12 @@ export function Sidebar() {
           label: 'Dashboard',
           icon: <LayoutDashboard className="h-5 w-5" />,
           href: '/dashboard',
-          active: pathname === '/dashboard',
         },
         {
           id: 'courses',
           label: 'Meine Kurse',
           icon: <GraduationCap className="h-5 w-5" />,
           href: '/dashboard',
-          active: pathname?.startsWith('/courses'),
         },
       ],
     },
@@ -61,21 +50,18 @@ export function Sidebar() {
           label: 'Kurskatalog',
           icon: <BookOpen className="h-5 w-5" />,
           href: '/catalog',
-          active: pathname === '/catalog',
         },
         {
           id: 'certificates',
           label: 'Zertifikate',
           icon: <Award className="h-5 w-5" />,
           href: '/certificates',
-          active: pathname === '/certificates',
         },
         {
           id: 'progress',
           label: 'Fortschritt',
           icon: <BarChart3 className="h-5 w-5" />,
           href: '/progress',
-          active: pathname === '/progress',
         },
       ],
     },
@@ -88,27 +74,22 @@ export function Sidebar() {
           label: 'Profil',
           icon: <User className="h-5 w-5" />,
           href: '/profile',
-          active: pathname === '/profile',
         },
         {
           id: 'settings',
           label: 'Einstellungen',
           icon: <Settings className="h-5 w-5" />,
           href: '/settings',
-          active: pathname === '/settings',
         },
       ],
     },
   ];
 
   return (
-    <MojoSidebar
-      logo={<MojoLogo size="sm" mode="dark" />}
-      collapsedLogo={<MojoIcon size={28} mode="dark" />}
+    <UnifiedSidebar
       sections={sections}
-      collapsed={collapsed}
-      onToggleCollapse={() => setCollapsed(!collapsed)}
-      collapsible
+      pathname={pathname}
+      storageKey="campus-sidebar-collapsed"
     />
   );
 }

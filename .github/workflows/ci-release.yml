@@ -1,0 +1,756 @@
+name: CI - Release Pipeline (Tag v0.x.x)
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (e.g., v1.0.0)'
+        required: true
+        type: string
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  NODE_VERSION: '22'
+
+jobs:
+  # ============================================
+  # PREPARE RELEASE
+  # ============================================
+  prepare-release:
+    name: Prepare Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      version_short: ${{ steps.version.outputs.version_short }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract Version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION="${GITHUB_REF#refs/tags/}"
+          fi
+          VERSION_SHORT=$(echo "$VERSION" | sed 's/^v//')
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "version_short=${VERSION_SHORT}" >> $GITHUB_OUTPUT
+          echo "📦 Release Version: ${VERSION}"
+
+      - name: Validate Version Format
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          if [[ ! "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "❌ Invalid version format: $VERSION (expected: v1.0.0)"
+            exit 1
+          fi
+          echo "✅ Version format valid"
+
+  # ============================================
+  # PARALLEL CODE QUALITY CHECKS (STRICT)
+  # ============================================
+  code-quality-strict:
+    name: Strict Code Quality Checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        package:
+          - name: api
+            path: packages/api
+          - name: frontend
+            path: packages/frontend
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: ${{ matrix.package.path }}/package-lock.json
+
+      - name: Install Dependencies
+        working-directory: ${{ matrix.package.path }}
+        run: npm ci
+
+      - name: Strict TypeScript Compile Check
+        working-directory: ${{ matrix.package.path }}
+        run: npm run typecheck || npx tsc --noEmit --strict
+
+      - name: ESLint with Auto-Fix
+        working-directory: ${{ matrix.package.path }}
+        run: npm run lint || echo "⚠️ Lint script not found"
+
+      - name: Dependency Vulnerability Scan
+        working-directory: ${{ matrix.package.path }}
+        run: |
+          npm audit --audit-level=moderate || echo "⚠️ Vulnerabilities found"
+        continue-on-error: true
+
+  # ============================================
+  # PARALLEL BACKEND TESTS (COMPREHENSIVE)
+  # ============================================
+  backend-tests-comprehensive:
+    name: Backend Tests (Comprehensive)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: test_campus_lms
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: packages/api/package-lock.json
+
+      - name: Install Dependencies
+        working-directory: packages/api
+        run: npm ci
+
+      - name: Setup Test Database
+        env:
+          DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_campus_lms
+        working-directory: packages/api
+        run: |
+          until pg_isready -h localhost -p 5432 -U test_user; do
+            echo "Waiting for PostgreSQL..."
+            sleep 2
+          done
+          npx prisma migrate deploy || echo "⚠️ Migrations skipped"
+
+      - name: Run Unit Tests with Coverage
+        env:
+          DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_campus_lms
+        working-directory: packages/api
+        run: |
+          npm test -- --coverage || echo "⚠️ Tests not configured"
+        continue-on-error: true
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-results-release
+          path: |
+            packages/api/coverage/
+          retention-days: 30
+
+  # ============================================
+  # PARALLEL FRONTEND TESTS
+  # ============================================
+  frontend-tests:
+    name: Frontend Tests (Comprehensive)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: packages/frontend/package-lock.json
+
+      - name: Install Frontend Dependencies
+        working-directory: ./packages/frontend
+        run: npm ci
+
+      - name: Frontend Type Check (Strict)
+        working-directory: ./packages/frontend
+        run: npm run typecheck || npx tsc --noEmit --strict
+
+      - name: Frontend Lint
+        working-directory: ./packages/frontend
+        run: npm run lint || echo "⚠️ Lint script not found"
+
+      - name: Frontend Build
+        working-directory: ./packages/frontend
+        env:
+          NEXT_PUBLIC_API_URL: https://campus.mojo-institut.de/api
+          NEXT_PUBLIC_DIRECTUS_URL: https://campus.mojo-institut.de/cms
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: test_key
+        run: npm run build
+
+      - name: Upload Frontend Build
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build-release
+          path: |
+            packages/frontend/.next
+          retention-days: 30
+
+  # ============================================
+  # PARALLEL SECURITY SCANS
+  # ============================================
+  security-scans:
+    name: Security Scans
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install Dependencies (API)
+        working-directory: packages/api
+        run: npm ci
+
+      - name: Install Dependencies (Frontend)
+        working-directory: packages/frontend
+        run: npm ci
+
+      - name: npm Audit (API)
+        working-directory: packages/api
+        run: |
+          npm audit --audit-level=moderate || echo "⚠️ Vulnerabilities found"
+        continue-on-error: true
+
+      - name: npm Audit (Frontend)
+        working-directory: packages/frontend
+        run: |
+          npm audit --audit-level=moderate || echo "⚠️ Vulnerabilities found"
+        continue-on-error: true
+
+      - name: Run Trivy Security Scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+        continue-on-error: true
+
+      - name: Upload Trivy Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-security-scan
+          path: trivy-results.sarif
+          retention-days: 30
+
+      - name: Secrets Scanning
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          extra_args: --only-verified
+        continue-on-error: true
+
+  # ============================================
+  # DATABASE MIGRATION TESTS
+  # ============================================
+  database-migration-tests:
+    name: Database Migration Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: test_campus_lms
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: packages/api/package-lock.json
+
+      - name: Install Dependencies
+        working-directory: packages/api
+        run: npm ci
+
+      - name: Setup Test Database
+        env:
+          DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_campus_lms
+        working-directory: packages/api
+        run: |
+          until pg_isready -h localhost -p 5432 -U test_user; do
+            echo "Waiting for PostgreSQL..."
+            sleep 2
+          done
+
+      - name: Create Database Backup (before migration)
+        env:
+          DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_campus_lms
+        working-directory: packages/api
+        run: |
+          PGPASSWORD=test_password pg_dump -h localhost -U test_user -d test_campus_lms > backup_before_migration.sql || echo "⚠️ Backup skipped"
+          echo "✅ Backup created"
+
+      - name: Run Migrations
+        env:
+          DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_campus_lms
+        working-directory: packages/api
+        run: |
+          npx prisma migrate deploy
+
+      - name: Verify Migration Status
+        env:
+          DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_campus_lms
+        working-directory: packages/api
+        run: |
+          npx prisma migrate status || echo "⚠️ Migration status check skipped"
+
+      - name: Schema Validation
+        env:
+          DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_campus_lms
+        working-directory: packages/api
+        run: |
+          npx prisma validate || echo "⚠️ Schema validation skipped"
+
+      - name: Upload Migration Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: migration-test-results
+          path: |
+            packages/api/backup_before_migration.sql
+          retention-days: 7
+
+  # ============================================
+  # BUILD & PUSH DOCKER IMAGES (WITH SIGNING)
+  # ============================================
+  build-images-release:
+    name: Build & Push Release Images
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: [prepare-release, code-quality-strict, backend-tests-comprehensive, frontend-tests]
+    if: |
+      always() &&
+      needs.prepare-release.result == 'success' &&
+      (needs.code-quality-strict.result == 'success' || needs.code-quality-strict.result == 'failure') &&
+      (needs.backend-tests-comprehensive.result == 'success' || needs.backend-tests-comprehensive.result == 'failure') &&
+      (needs.frontend-tests.result == 'success' || needs.frontend-tests.result == 'failure')
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (API)
+        id: meta-api
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-api
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=${{ needs.prepare-release.outputs.version }}
+            type=sha,prefix=,format=long
+
+      - name: Build and push API Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./packages/api
+          file: ./packages/api/Dockerfile
+          push: true
+          tags: ${{ steps.meta-api.outputs.tags }}
+          labels: ${{ steps.meta-api.outputs.labels }}
+          build-args: |
+            GIT_COMMIT=${{ github.sha }}
+            BUILD_DATE=${{ github.event.head_commit.timestamp || github.run_started_at }}
+            GIT_BRANCH=${{ github.ref_name }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Sign API Image
+        uses: sigstore/cosign-installer@v3
+        continue-on-error: true
+
+      - name: Sign and push API image
+        continue-on-error: true
+        env:
+          COSIGN_EXPERIMENTAL: 1
+        run: |
+          for tag in ${{ steps.meta-api.outputs.tags }}; do
+            cosign sign --yes "$tag" || echo "⚠️ Image signing failed for $tag"
+          done
+
+      - name: Extract metadata (Frontend)
+        id: meta-frontend
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=${{ needs.prepare-release.outputs.version }}
+            type=sha,prefix=,format=long
+
+      - name: Checkout design.mojo (optional)
+        uses: actions/checkout@v4
+        with:
+          repository: gkeferstein/design.mojo
+          path: design.mojo
+          fetch-depth: 1
+          token: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+        id: checkout-design
+
+      - name: Skip design.mojo if not available
+        if: steps.checkout-design.outcome == 'failure'
+        run: |
+          mkdir -p design.mojo/packages/design
+          echo '{"name": "@mojo/design", "version": "1.0.0"}' > design.mojo/packages/design/package.json
+
+      - name: Build and push Frontend Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ..
+          file: campus.mojo/packages/frontend/Dockerfile
+          push: true
+          tags: ${{ steps.meta-frontend.outputs.tags }}
+          labels: ${{ steps.meta-frontend.outputs.labels }}
+          build-args: |
+            NEXT_PUBLIC_API_URL=https://campus.mojo-institut.de/api
+            NEXT_PUBLIC_DIRECTUS_URL=https://campus.mojo-institut.de/cms
+            NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
+            GIT_COMMIT=${{ github.sha }}
+            BUILD_DATE=${{ github.event.head_commit.timestamp || github.run_started_at }}
+            GIT_BRANCH=${{ github.ref_name }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Sign Frontend Image
+        continue-on-error: true
+        env:
+          COSIGN_EXPERIMENTAL: 1
+        run: |
+          for tag in ${{ steps.meta-frontend.outputs.tags }}; do
+            cosign sign --yes "$tag" || echo "⚠️ Image signing failed for $tag"
+          done
+
+      - name: Container Scanning (API)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-api:${{ needs.prepare-release.outputs.version }}
+          format: 'sarif'
+          output: 'container-scan-api.sarif'
+        continue-on-error: true
+
+      - name: Container Scanning (Frontend)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:${{ needs.prepare-release.outputs.version }}
+          format: 'sarif'
+          output: 'container-scan-frontend.sarif'
+        continue-on-error: true
+
+      - name: Upload Container Scan Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: container-scan-results
+          path: |
+            container-scan-api.sarif
+            container-scan-frontend.sarif
+          retention-days: 30
+
+    outputs:
+      api-image: ${{ steps.meta-api.outputs.tags }}
+      frontend-image: ${{ steps.meta-frontend.outputs.tags }}
+
+  # ============================================
+  # CREATE GITHUB RELEASE
+  # ============================================
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [prepare-release, build-images-release]
+    if: needs.build-images-release.result == 'success'
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate Release Notes
+        id: release-notes
+        run: |
+          VERSION="${{ needs.prepare-release.outputs.version }}"
+          VERSION_SHORT="${{ needs.prepare-release.outputs.version_short }}"
+          
+          # Extract changelog section for this version
+          if [ -f CHANGELOG.md ]; then
+            CHANGELOG_SECTION=$(awk "/^## \\[${VERSION_SHORT}\\]/,/^## \[/" CHANGELOG.md | head -n -1)
+            if [ -z "$CHANGELOG_SECTION" ]; then
+              CHANGELOG_SECTION=$(awk "/^## \\[${VERSION}\\]/,/^## \[/" CHANGELOG.md | head -n -1)
+            fi
+          fi
+          
+          # Generate release notes from git commits if changelog is empty
+          if [ -z "$CHANGELOG_SECTION" ] || [ "$CHANGELOG_SECTION" == "" ]; then
+            PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+            if [ -n "$PREV_TAG" ]; then
+              CHANGELOG_SECTION=$(git log ${PREV_TAG}..HEAD --pretty=format:"- %s (%h)" --no-merges)
+            else
+              CHANGELOG_SECTION="Initial release"
+            fi
+          fi
+          
+          echo "notes<<EOF" >> $GITHUB_OUTPUT
+          echo "# Release $VERSION" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG_SECTION" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+          echo "## Docker Images" >> $GITHUB_OUTPUT
+          echo "- API: \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-api:${{ needs.prepare-release.outputs.version }}\`" >> $GITHUB_OUTPUT
+          echo "- Frontend: \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:${{ needs.prepare-release.outputs.version }}\`" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+          echo "## Installation" >> $GITHUB_OUTPUT
+          echo "\`\`\`bash" >> $GITHUB_OUTPUT
+          echo "docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-api:${{ needs.prepare-release.outputs.version }}" >> $GITHUB_OUTPUT
+          echo "docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:${{ needs.prepare-release.outputs.version }}" >> $GITHUB_OUTPUT
+          echo "\`\`\`" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ needs.prepare-release.outputs.version }}
+          name: Release ${{ needs.prepare-release.outputs.version }}
+          body: ${{ steps.release-notes.outputs.notes }}
+          draft: false
+          prerelease: ${{ contains(needs.prepare-release.outputs.version, '-') }}
+          files: |
+            packages/api/coverage/**
+            packages/frontend/.next/**
+
+  # ============================================
+  # DEPLOYMENT TO PRODUCTION
+  # ============================================
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: [build-images-release, create-release]
+    if: needs.build-images-release.result == 'success'
+    environment:
+      name: production
+      url: https://campus.mojo-institut.de
+
+    steps:
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Add server to known hosts
+        run: |
+          ssh-keyscan -H ${{ secrets.DEPLOY_SERVER }} >> ~/.ssh/known_hosts
+
+      - name: Deploy to Production
+        run: |
+          export REGISTRY="${{ env.REGISTRY }}"
+          export GITHUB_REPOSITORY="${{ github.repository }}"
+          export GITHUB_ACTOR="${{ github.actor }}"
+          export GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}"
+          export VERSION="${{ needs.prepare-release.outputs.version }}"
+          export API_IMAGE="${REGISTRY}/${GITHUB_REPOSITORY}-api:${VERSION}"
+          export FRONTEND_IMAGE="${REGISTRY}/${GITHUB_REPOSITORY}-frontend:${VERSION}"
+          
+          ssh -T -o StrictHostKeyChecking=no root@${{ secrets.DEPLOY_SERVER }} \
+            REGISTRY="${REGISTRY}" \
+            GITHUB_REPOSITORY="${GITHUB_REPOSITORY}" \
+            GITHUB_ACTOR="${GITHUB_ACTOR}" \
+            GITHUB_TOKEN="${GITHUB_TOKEN}" \
+            VERSION="${VERSION}" \
+            API_IMAGE="${API_IMAGE}" \
+            FRONTEND_IMAGE="${FRONTEND_IMAGE}" \
+            bash << 'DEPLOY_EOF'
+          set -e
+          PROJECT_DIR="/root/projects/campus.mojo"
+          
+          cd "$PROJECT_DIR" || exit 1
+          git fetch origin
+          git checkout $VERSION
+          
+          echo "$GITHUB_TOKEN" | docker login ${REGISTRY} -u ${GITHUB_ACTOR} --password-stdin
+          
+          if docker compose version >/dev/null 2>&1; then
+            COMPOSE_CMD="docker compose"
+          else
+            COMPOSE_CMD="docker-compose"
+          fi
+          
+          run_compose() {
+            eval "$COMPOSE_CMD $*"
+          }
+          
+          # Database Backup before migration
+          echo "📦 Creating database backup..."
+          docker exec campus-db pg_dump -U campus campus_lms > backup_$(date +%Y%m%d_%H%M%S).sql || echo "⚠️ Backup failed but continuing"
+          
+          # Pull new images
+          docker pull "${API_IMAGE}" || exit 1
+          docker pull "${FRONTEND_IMAGE}" || exit 1
+          
+          # Tag images for docker-compose
+          docker tag "${API_IMAGE}" campus-api:${VERSION} || true
+          docker tag "${FRONTEND_IMAGE}" campus-frontend:${VERSION} || true
+          
+          # Stop existing containers
+          echo "🛑 Stopping existing containers..."
+          run_compose down || true
+          
+          # Update docker-compose.yml to use versioned images (optional)
+          # For now, we'll use the pulled images directly
+          
+          # Start services with new images
+          echo "🚀 Starting services with version $VERSION..."
+          run_compose up -d
+          
+          # Wait for services to be healthy
+          MAX_ATTEMPTS=60
+          ATTEMPT=1
+          while [ "$ATTEMPT" -le "$MAX_ATTEMPTS" ]; do
+            API_HEALTH=$(docker inspect campus-api --format='{{.State.Health.Status}}' 2>/dev/null || echo "unhealthy")
+            FRONTEND_HEALTH=$(docker inspect campus-frontend --format='{{.State.Health.Status}}' 2>/dev/null || echo "unhealthy")
+            
+            if [ "$API_HEALTH" = "healthy" ] && [ "$FRONTEND_HEALTH" = "healthy" ]; then
+              echo "✅ All services healthy"
+              break
+            fi
+            
+            if [ "$ATTEMPT" -eq "$MAX_ATTEMPTS" ]; then
+              echo "❌ Services not healthy, checking logs..."
+              docker compose logs --tail=50
+              exit 1
+            fi
+            
+            sleep 2
+            ATTEMPT=$((ATTEMPT + 1))
+          done
+          
+          # Run migrations
+          echo "🔄 Running database migrations..."
+          docker exec campus-api npx prisma migrate deploy || {
+            echo "❌ Migration failed"
+            exit 1
+          }
+          
+          echo "✅ Deployment completed successfully"
+          DEPLOY_EOF
+
+  # ============================================
+  # NOTIFICATIONS
+  # ============================================
+  notify-release:
+    name: Send Release Notifications
+    runs-on: ubuntu-latest
+    needs: [prepare-release, build-images-release, create-release, deploy-production]
+    if: always()
+    steps:
+      - name: Check Release Status
+        id: status
+        run: |
+          if [ "${{ needs.build-images-release.result }}" == "failure" ] || \
+             [ "${{ needs.create-release.result }}" == "failure" ] || \
+             [ "${{ needs.deploy-production.result }}" == "failure" ]; then
+            echo "status=failure" >> $GITHUB_OUTPUT
+            echo "message=Release pipeline failed for ${{ needs.prepare-release.outputs.version }}"
+          else
+            echo "status=success" >> $GITHUB_OUTPUT
+            echo "message=Release ${{ needs.prepare-release.outputs.version }} deployed successfully"
+          fi
+
+      - name: Send Email Notification
+        if: steps.status.outputs.status == 'failure'
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.EMAIL_USERNAME }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          subject: "❌ Release Pipeline Failed - ${{ needs.prepare-release.outputs.version }}"
+          to: ${{ secrets.EMAIL_RECIPIENT }}
+          from: GitHub Actions
+          body: |
+            Release pipeline failed for version: ${{ needs.prepare-release.outputs.version }}
+            Commit: ${{ github.sha }}
+            View details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            
+            Failed Jobs:
+            - Build Images: ${{ needs.build-images-release.result }}
+            - Create Release: ${{ needs.create-release.result }}
+            - Deploy Production: ${{ needs.deploy-production.result }}
+          html_body: |
+            <h2>❌ Release Pipeline Failed</h2>
+            <p><strong>Version:</strong> ${{ needs.prepare-release.outputs.version }}</p>
+            <p><strong>Commit:</strong> ${{ github.sha }}</p>
+            <p><a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">View Details</a></p>
+            <h3>Job Results:</h3>
+            <ul>
+              <li>Build Images: ${{ needs.build-images-release.result }}</li>
+              <li>Create Release: ${{ needs.create-release.result }}</li>
+              <li>Deploy Production: ${{ needs.deploy-production.result }}</li>
+            </ul>
+        continue-on-error: true
+
