@@ -566,8 +566,8 @@ jobs:
       - name: Build and push Frontend Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ..
-          file: campus.mojo/packages/frontend/Dockerfile
+          context: ./packages/frontend
+          file: ./packages/frontend/Dockerfile
           push: true
           tags: ${{ steps.meta-frontend.outputs.tags }}
           labels: ${{ steps.meta-frontend.outputs.labels }}
