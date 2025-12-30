@@ -12,27 +12,12 @@ RUN if [ -n "$GITHUB_TOKEN" ]; then \
       echo "always-auth=true" >> ~/.npmrc; \
     fi
 
-# Try to copy design.mojo from parent context (if available)
-# If not available, we'll use the npm package instead
-COPY ../design.mojo/packages/design/dist /design-system/dist 2>/dev/null || echo "Design system not found, will use npm package"
-COPY ../design.mojo/packages/design/src/styles /design-system/src/styles 2>/dev/null || true
-COPY ../design.mojo/packages/design/tailwind.config.ts /design-system/tailwind.config.ts 2>/dev/null || true
-
-# Use pre-configured package.json for Docker (without workspace: deps)
-# If docker/design-package.json doesn't exist, create a minimal one
-COPY docker/design-package.json /design-system/package.json 2>/dev/null || echo '{"name": "@mojo/design", "version": "1.0.0"}' > /design-system/package.json
-
-# Install design-system dependencies
-WORKDIR /design-system
-RUN npm install --legacy-peer-deps
-
-# Back to app and copy frontend package.json
-WORKDIR /app
+# Copy frontend package.json first
 COPY package.json ./
 
-# Update the @mojo/design path for Docker context
-RUN sed -i 's|file:../../../design.mojo/packages/design|file:/design-system|g' package.json || \
-    sed -i 's|"@mojo/design": ".*"|"@mojo/design": "file:/design-system"|g' package.json || true
+# Update the @mojo/design to use npm package instead of file reference
+RUN sed -i 's|file:../../../design.mojo/packages/design|@gkeferstein/design|g' package.json || \
+    sed -i 's|"@mojo/design": ".*"|"@mojo/design": "^1.0.0"|g' package.json || true
 
 # Configure npm for GitHub Packages (if not already configured)
 RUN if [ -n "$GITHUB_TOKEN" ] && [ ! -f ~/.npmrc ]; then \
@@ -41,7 +26,7 @@ RUN if [ -n "$GITHUB_TOKEN" ] && [ ! -f ~/.npmrc ]; then \
       echo "always-auth=true" >> ~/.npmrc; \
     fi
 
-# Install dependencies
+# Install dependencies (including @gkeferstein/design from GitHub Packages)
 RUN npm install --legacy-peer-deps
 
 FROM node:22-alpine AS builder
@@ -55,10 +40,7 @@ ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_DIRECTUS_URL=$NEXT_PUBLIC_DIRECTUS_URL
 ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=$NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
 
-# Copy design system with its node_modules
-COPY --from=deps /design-system /design-system
-
-# Copy modified package.json from deps stage (with correct @mojo/design path)
+# Copy package.json and node_modules from deps stage
 COPY --from=deps /app/package.json ./package.json
 COPY --from=deps /app/node_modules ./node_modules
 
