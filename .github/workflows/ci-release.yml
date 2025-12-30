@@ -1,5 +1,9 @@
 name: CI - Release Pipeline (Tag v0.x.x)
 
+permissions:
+  contents: read
+  packages: read
+
 on:
   push:
     tags:
@@ -81,9 +85,27 @@ jobs:
           cache: 'npm'
           cache-dependency-path: ${{ matrix.package.path }}/package-lock.json
 
+      - name: Configure npm for GitHub Packages
+        env:
+          NPM_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Configuring npm for GitHub Packages..."
+          rm -f ~/.npmrc
+          echo "@gkeferstein:registry=https://npm.pkg.github.com" > ~/.npmrc
+          echo "//npm.pkg.github.com/:_authToken=${NPM_TOKEN}" >> ~/.npmrc
+          echo "always-auth=true" >> ~/.npmrc
+          echo ""
+          echo "Final .npmrc:"
+          cat ~/.npmrc
+          echo ""
+          echo "Testing npm config..."
+          npm config list
+
       - name: Install Dependencies
+        env:
+          NPM_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         working-directory: ${{ matrix.package.path }}
-        run: npm ci
+        run: npm install --legacy-peer-deps
 
       - name: Strict TypeScript Compile Check
         working-directory: ${{ matrix.package.path }}
@@ -132,9 +154,27 @@ jobs:
           cache: 'npm'
           cache-dependency-path: packages/api/package-lock.json
 
+      - name: Configure npm for GitHub Packages
+        env:
+          NPM_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Configuring npm for GitHub Packages..."
+          rm -f ~/.npmrc
+          echo "@gkeferstein:registry=https://npm.pkg.github.com" > ~/.npmrc
+          echo "//npm.pkg.github.com/:_authToken=${NPM_TOKEN}" >> ~/.npmrc
+          echo "always-auth=true" >> ~/.npmrc
+          echo ""
+          echo "Final .npmrc:"
+          cat ~/.npmrc
+          echo ""
+          echo "Testing npm config..."
+          npm config list
+
       - name: Install Dependencies
+        env:
+          NPM_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         working-directory: packages/api
-        run: npm ci
+        run: npm install --legacy-peer-deps
 
       - name: Setup Test Database
         env:
@@ -182,9 +222,27 @@ jobs:
           cache: 'npm'
           cache-dependency-path: packages/frontend/package-lock.json
 
+      - name: Configure npm for GitHub Packages
+        env:
+          NPM_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Configuring npm for GitHub Packages..."
+          rm -f ~/.npmrc
+          echo "@gkeferstein:registry=https://npm.pkg.github.com" > ~/.npmrc
+          echo "//npm.pkg.github.com/:_authToken=${NPM_TOKEN}" >> ~/.npmrc
+          echo "always-auth=true" >> ~/.npmrc
+          echo ""
+          echo "Final .npmrc:"
+          cat ~/.npmrc
+          echo ""
+          echo "Testing npm config..."
+          npm config list
+
       - name: Install Frontend Dependencies
+        env:
+          NPM_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         working-directory: ./packages/frontend
-        run: npm ci
+        run: npm install --legacy-peer-deps
 
       - name: Frontend Type Check (Strict)
         working-directory: ./packages/frontend
@@ -228,13 +286,33 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
+      - name: Configure npm for GitHub Packages
+        env:
+          NPM_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Configuring npm for GitHub Packages..."
+          rm -f ~/.npmrc
+          echo "@gkeferstein:registry=https://npm.pkg.github.com" > ~/.npmrc
+          echo "//npm.pkg.github.com/:_authToken=${NPM_TOKEN}" >> ~/.npmrc
+          echo "always-auth=true" >> ~/.npmrc
+          echo ""
+          echo "Final .npmrc:"
+          cat ~/.npmrc
+          echo ""
+          echo "Testing npm config..."
+          npm config list
+
       - name: Install Dependencies (API)
+        env:
+          NPM_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         working-directory: packages/api
-        run: npm ci
+        run: npm install --legacy-peer-deps
 
       - name: Install Dependencies (Frontend)
+        env:
+          NPM_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         working-directory: packages/frontend
-        run: npm ci
+        run: npm install --legacy-peer-deps
 
       - name: npm Audit (API)
         working-directory: packages/api
@@ -305,9 +383,27 @@ jobs:
           cache: 'npm'
           cache-dependency-path: packages/api/package-lock.json
 
+      - name: Configure npm for GitHub Packages
+        env:
+          NPM_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Configuring npm for GitHub Packages..."
+          rm -f ~/.npmrc
+          echo "@gkeferstein:registry=https://npm.pkg.github.com" > ~/.npmrc
+          echo "//npm.pkg.github.com/:_authToken=${NPM_TOKEN}" >> ~/.npmrc
+          echo "always-auth=true" >> ~/.npmrc
+          echo ""
+          echo "Final .npmrc:"
+          cat ~/.npmrc
+          echo ""
+          echo "Testing npm config..."
+          npm config list
+
       - name: Install Dependencies
+        env:
+          NPM_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         working-directory: packages/api
-        run: npm ci
+        run: npm install --legacy-peer-deps
 
       - name: Setup Test Database
         env:
@@ -413,6 +509,7 @@ jobs:
             GIT_COMMIT=${{ github.sha }}
             BUILD_DATE=${{ github.event.head_commit.timestamp || github.run_started_at }}
             GIT_BRANCH=${{ github.ref_name }}
+            GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
