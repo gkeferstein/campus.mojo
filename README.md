@@ -422,3 +422,4 @@ tar -czf uploads_$(date +%Y%m%d).tar.gz directus/uploads/
 ---
 
 **Zuletzt aktualisiert:** 2024-12-29
+# Test
