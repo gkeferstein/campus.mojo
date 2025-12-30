@@ -11,7 +11,7 @@ on:
       - 'LICENSE'
       - 'docs/**'
       - 'scripts/**'
-      - '.github/**'
+      - '.github/workflows/README.md'
   pull_request:
     branches:
       - main
