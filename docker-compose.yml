@@ -39,7 +39,7 @@ services:
       DB_PASSWORD: ${POSTGRES_PASSWORD}
       CORS_ENABLED: "true"
       CORS_ORIGIN: "true"
-      PUBLIC_URL: ${DIRECTUS_PUBLIC_URL:-https://dev.campus.mojo-institut.de/cms}
+      PUBLIC_URL: ${DIRECTUS_PUBLIC_URL:-https://campus.staging.mojo-institut.de/cms}
     volumes:
       - campus-directus-uploads:/directus/uploads
       - ./directus/extensions:/directus/extensions:ro
@@ -64,7 +64,7 @@ services:
       - "traefik.http.routers.campus-directus.priority=20"
       - "traefik.http.routers.campus-directus.middlewares=campus-directus-strip"
       # DEV Directus CMS: /cms
-      - "traefik.http.routers.campus-directus-dev.rule=Host(`dev.campus.mojo-institut.de`) && PathPrefix(`/cms`)"
+      - "traefik.http.routers.campus-directus-dev.rule=Host(`campus.staging.mojo-institut.de`) && PathPrefix(`/cms`)"
       - "traefik.http.routers.campus-directus-dev.entrypoints=websecure"
       - "traefik.http.routers.campus-directus-dev.tls.certresolver=letsencrypt"
       - "traefik.http.routers.campus-directus-dev.service=campus-directus"
@@ -114,7 +114,7 @@ services:
       - "traefik.http.routers.campus-api.priority=15"
       - "traefik.http.routers.campus-api.middlewares=campus-api-strip,security-headers@file,cors@file"
       # DEV API: /api
-      - "traefik.http.routers.campus-api-dev.rule=Host(`dev.campus.mojo-institut.de`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.campus-api-dev.rule=Host(`campus.staging.mojo-institut.de`) && PathPrefix(`/api`)"
       - "traefik.http.routers.campus-api-dev.entrypoints=websecure"
       - "traefik.http.routers.campus-api-dev.tls.certresolver=letsencrypt"
       - "traefik.http.routers.campus-api-dev.service=campus-api"
@@ -130,16 +130,16 @@ services:
       context: ./packages/frontend
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://dev.campus.mojo-institut.de/api}
-        NEXT_PUBLIC_DIRECTUS_URL: ${NEXT_PUBLIC_DIRECTUS_URL:-https://dev.campus.mojo-institut.de/cms}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://campus.staging.mojo-institut.de/api}
+        NEXT_PUBLIC_DIRECTUS_URL: ${NEXT_PUBLIC_DIRECTUS_URL:-https://campus.staging.mojo-institut.de/cms}
         NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
     container_name: campus-frontend
     depends_on:
       api:
         condition: service_started
     environment:
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://dev.campus.mojo-institut.de/api}
-      NEXT_PUBLIC_DIRECTUS_URL: ${NEXT_PUBLIC_DIRECTUS_URL:-https://dev.campus.mojo-institut.de/cms}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://campus.staging.mojo-institut.de/api}
+      NEXT_PUBLIC_DIRECTUS_URL: ${NEXT_PUBLIC_DIRECTUS_URL:-https://campus.staging.mojo-institut.de/cms}
       NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
       CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
     healthcheck:
@@ -162,7 +162,7 @@ services:
       - "traefik.http.routers.campus-frontend.priority=1"
       - "traefik.http.routers.campus-frontend.middlewares=security-headers@file"
       # DEV Frontend (catch-all)
-      - "traefik.http.routers.campus-frontend-dev.rule=Host(`dev.campus.mojo-institut.de`)"
+      - "traefik.http.routers.campus-frontend-dev.rule=Host(`campus.staging.mojo-institut.de`)"
       - "traefik.http.routers.campus-frontend-dev.entrypoints=websecure"
       - "traefik.http.routers.campus-frontend-dev.tls.certresolver=letsencrypt"
       - "traefik.http.routers.campus-frontend-dev.service=campus-frontend"
