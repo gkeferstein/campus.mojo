@@ -8,6 +8,8 @@ import { AuthProvider } from "@/providers/AuthProvider";
 import { ProgressProvider } from "@/providers/ProgressProvider";
 import { Toaster } from "@/components/ui/toaster";
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: {
     default: "campus.mojo",
