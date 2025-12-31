@@ -763,33 +763,34 @@ jobs:
             JWT_SECRET=$(openssl rand -base64 64 | tr -d "=+/" | cut -c1-50)
             WEBHOOK_SECRET=$(openssl rand -base64 32 | tr -d "=+/" | cut -c1-25)
             
-            cat > .env << ENV_EOF
-# Database Configuration
-POSTGRES_USER=campus
-POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-POSTGRES_DB=campus_lms
-
-# Directus CMS Configuration
-DIRECTUS_KEY=${DIRECTUS_KEY}
-DIRECTUS_SECRET=${DIRECTUS_SECRET}
-DIRECTUS_ADMIN_EMAIL=admin@mojo-institut.de
-DIRECTUS_ADMIN_PASSWORD=${DIRECTUS_ADMIN_PASSWORD}
-DIRECTUS_ADMIN_TOKEN=
-DIRECTUS_PUBLIC_URL=https://campus.mojo-institut.de/cms
-
-# API Configuration
-JWT_SECRET=${JWT_SECRET}
-JWT_EXPIRES_IN=7d
-WEBHOOK_SECRET=${WEBHOOK_SECRET}
-
-# Clerk Configuration (MUST be updated with actual values)
-CLERK_SECRET_KEY=CHANGE_ME_PLEASE
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=CHANGE_ME_PLEASE
-
-# Frontend Configuration
-NEXT_PUBLIC_API_URL=https://campus.mojo-institut.de/api
-NEXT_PUBLIC_DIRECTUS_URL=https://campus.mojo-institut.de/cms
-ENV_EOF
+            # Create .env file using echo commands to avoid nested heredoc issues
+            {
+              echo "# Database Configuration"
+              echo "POSTGRES_USER=campus"
+              echo "POSTGRES_PASSWORD=${POSTGRES_PASSWORD}"
+              echo "POSTGRES_DB=campus_lms"
+              echo ""
+              echo "# Directus CMS Configuration"
+              echo "DIRECTUS_KEY=${DIRECTUS_KEY}"
+              echo "DIRECTUS_SECRET=${DIRECTUS_SECRET}"
+              echo "DIRECTUS_ADMIN_EMAIL=admin@mojo-institut.de"
+              echo "DIRECTUS_ADMIN_PASSWORD=${DIRECTUS_ADMIN_PASSWORD}"
+              echo "DIRECTUS_ADMIN_TOKEN="
+              echo "DIRECTUS_PUBLIC_URL=https://campus.mojo-institut.de/cms"
+              echo ""
+              echo "# API Configuration"
+              echo "JWT_SECRET=${JWT_SECRET}"
+              echo "JWT_EXPIRES_IN=7d"
+              echo "WEBHOOK_SECRET=${WEBHOOK_SECRET}"
+              echo ""
+              echo "# Clerk Configuration (MUST be updated with actual values)"
+              echo "CLERK_SECRET_KEY=CHANGE_ME_PLEASE"
+              echo "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=CHANGE_ME_PLEASE"
+              echo ""
+              echo "# Frontend Configuration"
+              echo "NEXT_PUBLIC_API_URL=https://campus.mojo-institut.de/api"
+              echo "NEXT_PUBLIC_DIRECTUS_URL=https://campus.mojo-institut.de/cms"
+            } > .env
             echo "✅ .env file created with secure random values"
             echo "⚠️ Warning: CLERK_SECRET_KEY and NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY must be updated with actual values!"
           else
