@@ -151,29 +151,6 @@ jobs:
             type=raw,value=main-latest
             type=raw,value=${{ github.sha }}
 
-      - name: Checkout design.mojo (optional)
-        uses: actions/checkout@v4
-        with:
-          repository: gkeferstein/design.mojo
-          path: design.mojo
-          fetch-depth: 1
-          token: ${{ secrets.GHCR_TOKEN }}
-        continue-on-error: true
-        id: checkout-design
-
-      - name: Skip design.mojo if not available
-        if: steps.checkout-design.outcome == 'failure'
-        run: |
-          mkdir -p design.mojo/packages/design
-          echo '{"name": "@mojo/design", "version": "1.0.0"}' > design.mojo/packages/design/package.json
-
-      - name: Create .npmrc for Frontend Docker Build
-        run: |
-          echo "@gkeferstein:registry=https://npm.pkg.github.com" > .npmrc
-          echo "//npm.pkg.github.com/:_authToken=${{ secrets.GHCR_TOKEN }}" >> .npmrc
-          echo "always-auth=true" >> .npmrc
-          echo "Created .npmrc for Frontend Docker build"
-
       - name: Build and push Frontend Docker image
         uses: docker/build-push-action@v5
         with:

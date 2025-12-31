@@ -15,13 +15,8 @@ RUN if [ -n "$GITHUB_TOKEN" ]; then \
 # Copy frontend package.json first
 COPY package.json ./
 
-# Configure npm for GitHub Packages (if not already configured)
 # @gkeferstein/design is published to GitHub Packages, install directly
-RUN if [ -n "$GITHUB_TOKEN" ] && [ ! -f ~/.npmrc ]; then \
-      echo "@gkeferstein:registry=https://npm.pkg.github.com" > ~/.npmrc && \
-      echo "//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}" >> ~/.npmrc && \
-      echo "always-auth=true" >> ~/.npmrc; \
-    fi
+# npmrc is already configured above if GITHUB_TOKEN is provided
 
 # Install dependencies (including @gkeferstein/design from GitHub Packages)
 RUN npm install --legacy-peer-deps && \
