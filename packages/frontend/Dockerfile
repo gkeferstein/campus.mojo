@@ -12,42 +12,21 @@ RUN if [ -n "$GITHUB_TOKEN" ]; then \
       echo "always-auth=true" >> ~/.npmrc; \
     fi
 
-# Install git for cloning design.mojo
-RUN apk add --no-cache git
-
 # Copy frontend package.json first
 COPY package.json ./
 
-# Clone design.mojo repository (needed for @gkeferstein/design package)
-# Clone to /app/design.mojo so it's accessible from the build context
-RUN if [ -n "$GITHUB_TOKEN" ]; then \
-      git clone --depth 1 https://${GITHUB_TOKEN}@github.com/gkeferstein/design.mojo.git /app/design.mojo || \
-      git clone --depth 1 https://github.com/gkeferstein/design.mojo.git /app/design.mojo; \
-    else \
-      git clone --depth 1 https://github.com/gkeferstein/design.mojo.git /app/design.mojo; \
-    fi
-
-# Verify design.mojo was cloned
-RUN ls -la /app/design.mojo/packages/design || (echo "❌ design.mojo not cloned correctly" && exit 1)
-
-# Update package.json to use local design.mojo package BEFORE npm install
-RUN sed -i 's|"@gkeferstein/design": "[^"]*"|"@gkeferstein/design": "file:../design.mojo/packages/design"|g' package.json && \
-    echo "✅ Updated package.json:" && \
-    grep "@gkeferstein/design" package.json
-
 # Configure npm for GitHub Packages (if not already configured)
+# @gkeferstein/design is published to GitHub Packages, install directly
 RUN if [ -n "$GITHUB_TOKEN" ] && [ ! -f ~/.npmrc ]; then \
       echo "@gkeferstein:registry=https://npm.pkg.github.com" > ~/.npmrc && \
       echo "//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}" >> ~/.npmrc && \
       echo "always-auth=true" >> ~/.npmrc; \
     fi
 
-# Install dependencies (using local design.mojo package)
-# Remove package-lock.json if it exists to force fresh install with file: link
-RUN rm -f package-lock.json && \
-    npm install --legacy-peer-deps && \
+# Install dependencies (including @gkeferstein/design from GitHub Packages)
+RUN npm install --legacy-peer-deps && \
     echo "✅ Verifying @gkeferstein/design installation:" && \
-    ls -la node_modules/@gkeferstein/design || echo "⚠️ @gkeferstein/design not found in node_modules"
+    ls -la node_modules/@gkeferstein/design || (echo "❌ @gkeferstein/design not found in node_modules" && exit 1)
 
 FROM node:22-alpine AS builder
 WORKDIR /app
@@ -72,12 +51,7 @@ RUN if [ -n "$GITHUB_TOKEN" ]; then \
 COPY --from=deps /app/package.json ./package.json
 COPY --from=deps /app/node_modules ./node_modules
 
-# Copy design.mojo from deps stage (needed for @gkeferstein/design file: link)
-# Copy to ../design.mojo relative to /app (so it's at /design.mojo)
-COPY --from=deps /app/design.mojo ../design.mojo
-
-# Verify design.mojo is accessible
-RUN ls -la ../design.mojo/packages/design || (echo "❌ design.mojo not found in builder stage" && exit 1)
+# @gkeferstein/design is installed from GitHub Packages, no need to copy design.mojo
 
 # Copy frontend source files
 COPY src ./src
