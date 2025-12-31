@@ -837,16 +837,51 @@ jobs:
           echo "  frontend:" >> docker-compose.override.yml
           echo "    image: campus-frontend:latest" >> docker-compose.override.yml
           
-          # Start services with new images
-          echo "🚀 Starting services with version $VERSION..."
+          # Start database first and wait for it to be healthy
+          echo "🚀 Starting database..."
+          run_compose up -d --no-build db
+          
+          # Wait for database to be healthy
+          echo "⏳ Waiting for database to be healthy..."
+          MAX_ATTEMPTS=30
+          ATTEMPT=1
+          while [ "$ATTEMPT" -le "$MAX_ATTEMPTS" ]; do
+            DB_HEALTH=$(docker inspect campus-db --format='{{.State.Health.Status}}' 2>/dev/null || echo "unhealthy")
+            DB_STATUS=$(docker inspect campus-db --format='{{.State.Status}}' 2>/dev/null || echo "unknown")
+            
+            echo "Database status: $DB_STATUS, health: $DB_HEALTH (attempt $ATTEMPT/$MAX_ATTEMPTS)"
+            
+            if [ "$DB_HEALTH" = "healthy" ]; then
+              echo "✅ Database is healthy"
+              break
+            fi
+            
+            if [ "$ATTEMPT" -eq "$MAX_ATTEMPTS" ]; then
+              echo "❌ Database not healthy after $MAX_ATTEMPTS attempts"
+              echo "Database logs:"
+              docker logs campus-db --tail=50
+              echo "Database container status:"
+              docker inspect campus-db --format='{{json .State}}'
+              exit 1
+            fi
+            
+            sleep 2
+            ATTEMPT=$((ATTEMPT + 1))
+          done
+          
+          # Start all other services
+          echo "🚀 Starting all services..."
           run_compose up -d --no-build
           
-          # Wait for services to be healthy
+          # Wait for API and Frontend to be healthy
+          echo "⏳ Waiting for API and Frontend to be healthy..."
           MAX_ATTEMPTS=60
           ATTEMPT=1
           while [ "$ATTEMPT" -le "$MAX_ATTEMPTS" ]; do
             API_HEALTH=$(docker inspect campus-api --format='{{.State.Health.Status}}' 2>/dev/null || echo "unhealthy")
             FRONTEND_HEALTH=$(docker inspect campus-frontend --format='{{.State.Health.Status}}' 2>/dev/null || echo "unhealthy")
+            
+            echo "API health: $API_HEALTH, Frontend health: $FRONTEND_HEALTH (attempt $ATTEMPT/$MAX_ATTEMPTS)"
             
             if [ "$API_HEALTH" = "healthy" ] && [ "$FRONTEND_HEALTH" = "healthy" ]; then
               echo "✅ All services healthy"
@@ -855,7 +890,14 @@ jobs:
             
             if [ "$ATTEMPT" -eq "$MAX_ATTEMPTS" ]; then
               echo "❌ Services not healthy, checking logs..."
-              docker compose logs --tail=50
+              echo "=== Database logs ==="
+              docker logs campus-db --tail=30
+              echo "=== API logs ==="
+              docker logs campus-api --tail=30
+              echo "=== Frontend logs ==="
+              docker logs campus-frontend --tail=30
+              echo "=== All compose logs ==="
+              run_compose logs --tail=50
               exit 1
             fi
             
