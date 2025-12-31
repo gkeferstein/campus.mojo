@@ -749,6 +749,9 @@ jobs:
           git fetch origin
           git checkout $VERSION || (git fetch origin && git checkout $VERSION)
           
+          # Reset docker-compose.yml to clean state from git
+          git checkout HEAD -- docker-compose.yml || true
+          
           echo "$GITHUB_TOKEN" | docker login ${REGISTRY} -u ${GITHUB_ACTOR} --password-stdin
           
           if docker compose version >/dev/null 2>&1; then
