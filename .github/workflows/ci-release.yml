@@ -772,17 +772,19 @@ jobs:
           # Tag images for docker-compose
           docker tag "${API_IMAGE}" campus-api:${VERSION} || true
           docker tag "${FRONTEND_IMAGE}" campus-frontend:${VERSION} || true
+          docker tag "${API_IMAGE}" campus-api:latest || true
+          docker tag "${FRONTEND_IMAGE}" campus-frontend:latest || true
           
           # Stop existing containers
           echo "🛑 Stopping existing containers..."
           run_compose down || true
           
-          # Update docker-compose.yml to use versioned images (optional)
-          # For now, we'll use the pulled images directly
+          # Update docker-compose.yml to use pulled images instead of building
+          sed -i 's|build:|# build:|g; s|^  api:$|  api:\n    image: campus-api:latest|g; s|^  frontend:$|  frontend:\n    image: campus-frontend:latest|g' docker-compose.yml || true
           
           # Start services with new images
           echo "🚀 Starting services with version $VERSION..."
-          run_compose up -d
+          run_compose up -d --no-build
           
           # Wait for services to be healthy
           MAX_ATTEMPTS=60
