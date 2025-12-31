@@ -39,7 +39,7 @@ services:
       DB_PASSWORD: ${POSTGRES_PASSWORD}
       CORS_ENABLED: "true"
       CORS_ORIGIN: "true"
-      PUBLIC_URL: ${DIRECTUS_PUBLIC_URL:-https://campus.mojo-institut.de/cms}
+      PUBLIC_URL: ${DIRECTUS_PUBLIC_URL:-https://dev.campus.mojo-institut.de/cms}
     volumes:
       - campus-directus-uploads:/directus/uploads
       - ./directus/extensions:/directus/extensions:ro
@@ -130,16 +130,16 @@ services:
       context: ./packages/frontend
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://campus.mojo-institut.de/api}
-        NEXT_PUBLIC_DIRECTUS_URL: ${NEXT_PUBLIC_DIRECTUS_URL:-https://campus.mojo-institut.de/cms}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://dev.campus.mojo-institut.de/api}
+        NEXT_PUBLIC_DIRECTUS_URL: ${NEXT_PUBLIC_DIRECTUS_URL:-https://dev.campus.mojo-institut.de/cms}
         NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
     container_name: campus-frontend
     depends_on:
       api:
         condition: service_started
     environment:
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://campus.mojo-institut.de/api}
-      NEXT_PUBLIC_DIRECTUS_URL: ${NEXT_PUBLIC_DIRECTUS_URL:-https://campus.mojo-institut.de/cms}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://dev.campus.mojo-institut.de/api}
+      NEXT_PUBLIC_DIRECTUS_URL: ${NEXT_PUBLIC_DIRECTUS_URL:-https://dev.campus.mojo-institut.de/cms}
       NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
       CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
     healthcheck:

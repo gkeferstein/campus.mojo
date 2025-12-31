@@ -787,7 +787,7 @@ jobs:
               echo "CLERK_SECRET_KEY=CHANGE_ME_PLEASE"
               echo "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=CHANGE_ME_PLEASE"
               echo ""
-              echo "# Frontend Configuration"
+              echo "# Frontend Configuration (Production URLs)"
               echo "NEXT_PUBLIC_API_URL=https://campus.mojo-institut.de/api"
               echo "NEXT_PUBLIC_DIRECTUS_URL=https://campus.mojo-institut.de/cms"
             } > .env
