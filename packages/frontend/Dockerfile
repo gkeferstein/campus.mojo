@@ -63,6 +63,9 @@ RUN if [ -n "$GITHUB_TOKEN" ]; then \
 COPY --from=deps /app/package.json ./package.json
 COPY --from=deps /app/node_modules ./node_modules
 
+# Copy design.mojo from deps stage (needed for @gkeferstein/design file: link)
+COPY --from=deps /app/design.mojo ../design.mojo
+
 # Copy frontend source files
 COPY src ./src
 COPY public ./public
