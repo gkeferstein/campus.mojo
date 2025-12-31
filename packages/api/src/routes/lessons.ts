@@ -13,9 +13,17 @@ export async function lessonsRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.get('/lessons/:lessonSlug', {
     preHandler: [authenticate],
     schema: {
-      params: z.object({
-        lessonSlug: z.string().min(1).max(255),
-      }),
+      params: {
+        type: 'object',
+        required: ['lessonSlug'],
+        properties: {
+          lessonSlug: {
+            type: 'string',
+            minLength: 1,
+            maxLength: 255,
+          },
+        },
+      },
     },
   }, async (request, reply) => {
     const { lessonSlug } = request.params as { lessonSlug: string };
@@ -70,13 +78,29 @@ export async function lessonsRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.post('/lessons/:lessonId/complete', {
     preHandler: [authenticate],
     schema: {
-      params: z.object({
-        lessonId: z.string().uuid(),
-      }),
+      params: {
+        type: 'object',
+        required: ['lessonId'],
+        properties: {
+          lessonId: {
+            type: 'string',
+            format: 'uuid',
+          },
+        },
+      },
+      body: {
+        type: 'object',
+        properties: {
+          timeSpentSeconds: {
+            type: 'integer',
+            minimum: 0,
+          },
+        },
+      },
     },
   }, async (request, reply) => {
     const { lessonId } = request.params as { lessonId: string };
-    const body = completeSchema.parse(request.body || {});
+    const body = (request.body || {}) as { timeSpentSeconds?: number };
 
     // Get the lesson to find the course
     const existingProgress = await prisma.lessonProgress.findUnique({
@@ -140,16 +164,34 @@ export async function lessonsRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.post('/lessons/:lessonId/progress', {
     preHandler: [authenticate],
     schema: {
-      params: z.object({
-        lessonId: z.string().uuid(),
-      }),
+      params: {
+        type: 'object',
+        required: ['lessonId'],
+        properties: {
+          lessonId: {
+            type: 'string',
+            format: 'uuid',
+          },
+        },
+      },
+      body: {
+        type: 'object',
+        required: ['timeSpentSeconds', 'courseId'],
+        properties: {
+          timeSpentSeconds: {
+            type: 'integer',
+            minimum: 0,
+          },
+          courseId: {
+            type: 'string',
+            format: 'uuid',
+          },
+        },
+      },
     },
   }, async (request, reply) => {
     const { lessonId } = request.params as { lessonId: string };
-    const body = z.object({
-      timeSpentSeconds: z.number().int().min(0),
-      courseId: z.string().uuid(),
-    }).parse(request.body);
+    const body = request.body as { timeSpentSeconds: number; courseId: string };
 
     const progress = await prisma.lessonProgress.upsert({
       where: {
