@@ -712,7 +712,7 @@ jobs:
 
       - name: Add server to known hosts
         run: |
-          ssh-keyscan -H ${{ secrets.PROD_SERVER_HOST }} >> ~/.ssh/known_hosts || true
+          ssh-keyscan -H -p 2222 ${{ secrets.PROD_SERVER_HOST }} >> ~/.ssh/known_hosts || true
 
       - name: Deploy to Production
         run: |
@@ -724,7 +724,7 @@ jobs:
           export API_IMAGE="${REGISTRY}/${GITHUB_REPOSITORY}-api:${VERSION}"
           export FRONTEND_IMAGE="${REGISTRY}/${GITHUB_REPOSITORY}-frontend:${VERSION}"
           
-          ssh -T -o StrictHostKeyChecking=no root@${{ secrets.PROD_SERVER_HOST }} \
+          ssh -T -p 2222 -o StrictHostKeyChecking=no root@${{ secrets.PROD_SERVER_HOST }} \
             REGISTRY="${REGISTRY}" \
             GITHUB_REPOSITORY="${GITHUB_REPOSITORY}" \
             GITHUB_ACTOR="${GITHUB_ACTOR}" \
