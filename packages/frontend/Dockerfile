@@ -4,6 +4,10 @@
 FROM node:22-alpine AS deps
 WORKDIR /app
 
+# Copy frontend package.json and .npmrc (if created in CI)
+COPY package.json ./
+COPY .npmrc* ./
+
 # Configure npm for GitHub Packages
 # Use .npmrc from build context if available, otherwise use GITHUB_TOKEN
 ARG GITHUB_TOKEN
@@ -18,10 +22,6 @@ RUN if [ -f .npmrc ]; then \
     else \
       echo "⚠️ No .npmrc or GITHUB_TOKEN provided"; \
     fi
-
-# Copy frontend package.json and .npmrc (if created in CI)
-COPY package.json ./
-COPY .npmrc* ./
 
 # Install git for potential fallback
 RUN apk add --no-cache git
