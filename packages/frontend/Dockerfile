@@ -29,22 +29,38 @@ RUN if [ -n "$GITHUB_TOKEN" ]; then \
     cp -r /tmp/design.mojo/packages/design /app/design.mojo/packages/
 
 # Try to install from GitHub Packages first, fallback to local file: link
-RUN npm install --legacy-peer-deps > /tmp/npm-install.log 2>&1 || INSTALL_FAILED=1; \
-    if [ "${INSTALL_FAILED:-0}" = "1" ] || [ ! -d "node_modules/@gkeferstein/design" ]; then \
-      echo "⚠️ Installation from GitHub Packages failed or package not found" && \
+RUN set -o pipefail; \
+    npm install --legacy-peer-deps > /tmp/npm-install.log 2>&1; \
+    INSTALL_EXIT=$?; \
+    if [ $INSTALL_EXIT -ne 0 ] || [ ! -d "node_modules/@gkeferstein/design" ]; then \
+      echo "⚠️ Installation from GitHub Packages failed or package not found (exit code: $INSTALL_EXIT)" && \
       echo "=== npm install log ===" && \
       cat /tmp/npm-install.log && \
+      echo "" && \
       echo "⚠️ Using local design.mojo as fallback..." && \
+      if [ ! -d "/app/design.mojo/packages/design" ]; then \
+        echo "❌ design.mojo not found at /app/design.mojo/packages/design" && \
+        ls -la /app/design.mojo || echo "design.mojo directory does not exist" && \
+        exit 1; \
+      fi && \
       sed -i 's|"@gkeferstein/design": "[^"]*"|"@gkeferstein/design": "file:../design.mojo/packages/design"|g' package.json && \
       echo "✅ Updated package.json:" && \
       grep "@gkeferstein/design" package.json && \
       echo "✅ Installing with local design.mojo..." && \
-      npm install --legacy-peer-deps || (echo "❌ Local installation also failed" && exit 1); \
+      npm install --legacy-peer-deps > /tmp/npm-install-local.log 2>&1 || \
+        (echo "❌ Local installation also failed" && echo "=== local npm install log ===" && cat /tmp/npm-install-local.log && exit 1); \
     else \
       echo "✅ Successfully installed from GitHub Packages"; \
     fi && \
     echo "✅ Verifying @gkeferstein/design installation:" && \
-    ls -la node_modules/@gkeferstein/design || (echo "❌ @gkeferstein/design not found in node_modules" && echo "=== npm install log ===" && cat /tmp/npm-install.log && exit 1)
+    if [ ! -d "node_modules/@gkeferstein/design" ]; then \
+      echo "❌ @gkeferstein/design not found in node_modules" && \
+      echo "=== npm install log ===" && \
+      cat /tmp/npm-install.log && \
+      exit 1; \
+    fi && \
+    ls -la node_modules/@gkeferstein/design && \
+    echo "✅ @gkeferstein/design successfully installed"
 
 FROM node:22-alpine AS builder
 WORKDIR /app
