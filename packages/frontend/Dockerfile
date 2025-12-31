@@ -35,10 +35,18 @@ WORKDIR /app
 ARG NEXT_PUBLIC_API_URL
 ARG NEXT_PUBLIC_DIRECTUS_URL
 ARG NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+ARG GITHUB_TOKEN
 
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_DIRECTUS_URL=$NEXT_PUBLIC_DIRECTUS_URL
 ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=$NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+
+# Configure npm for GitHub Packages
+RUN if [ -n "$GITHUB_TOKEN" ]; then \
+      echo "@gkeferstein:registry=https://npm.pkg.github.com" > ~/.npmrc && \
+      echo "//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}" >> ~/.npmrc && \
+      echo "always-auth=true" >> ~/.npmrc; \
+    fi
 
 # Copy package.json and node_modules from deps stage
 COPY --from=deps /app/package.json ./package.json
