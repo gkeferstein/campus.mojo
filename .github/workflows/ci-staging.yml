@@ -137,7 +137,7 @@ jobs:
             GIT_COMMIT=${{ github.sha }}
             BUILD_DATE=${{ github.event.head_commit.timestamp || github.run_started_at }}
             GIT_BRANCH=${{ github.ref_name }}
-            GITHUB_TOKEN=${{ secrets.GHCR_TOKEN }}
+            GITHUB_TOKEN=${{ secrets.GHCR_TOKEN || secrets.GITHUB_TOKEN }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
