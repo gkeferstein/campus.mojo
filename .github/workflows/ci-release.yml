@@ -778,6 +778,9 @@ jobs:
           docker tag "${API_IMAGE}" campus-api:latest || true
           docker tag "${FRONTEND_IMAGE}" campus-frontend:latest || true
           
+          # Ensure mojo-network exists
+          docker network inspect mojo-network >/dev/null 2>&1 || docker network create mojo-network || true
+          
           # Stop existing containers
           echo "🛑 Stopping existing containers..."
           run_compose down || true
