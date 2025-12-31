@@ -16,6 +16,9 @@ import {
   Settings,
   User,
   BarChart3,
+  Heart,
+  Dumbbell,
+  Wallet,
 } from 'lucide-react';
 
 export function Sidebar() {
@@ -62,6 +65,30 @@ export function Sidebar() {
           label: 'Fortschritt',
           icon: <BarChart3 className="h-5 w-5" />,
           href: '/progress',
+        },
+      ],
+    },
+    {
+      id: 'tools',
+      title: 'Werkzeuge',
+      items: [
+        {
+          id: 'health-analysis',
+          label: 'Gesundheitsanalysen',
+          icon: <Heart className="h-5 w-5" />,
+          href: '/tools/health',
+        },
+        {
+          id: 'training-planner',
+          label: 'Trainingsplaner',
+          icon: <Dumbbell className="h-5 w-5" />,
+          href: '/tools/training',
+        },
+        {
+          id: 'finance',
+          label: 'Finanzen',
+          icon: <Wallet className="h-5 w-5" />,
+          href: '/tools/finance',
         },
       ],
     },

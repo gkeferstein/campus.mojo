@@ -1,31 +1,23 @@
 import { FastifyInstance } from 'fastify';
-import { z } from 'zod';
 import { authenticate } from '../middleware/auth.js';
 import { prisma } from '../lib/prisma.js';
-
-const upsertSchema = z.object({
-  toolSlug: z.string().min(1).max(100),
-  key: z.string().min(1).max(100),
-  value: z.any(),
-  lessonId: z.string().uuid().optional(),
-  courseId: z.string().uuid().optional(),
-});
-
-const bulkUpsertSchema = z.object({
-  toolSlug: z.string().min(1).max(100),
-  variables: z.record(z.string(), z.any()),
-  lessonId: z.string().uuid().optional(),
-  courseId: z.string().uuid().optional(),
-});
 
 export async function userVariablesRoutes(fastify: FastifyInstance): Promise<void> {
   // GET /user-variables?toolSlug=xxx
   fastify.get('/user-variables', {
     preHandler: [authenticate],
     schema: {
-      querystring: z.object({
-        toolSlug: z.string().min(1).max(100),
-      }),
+      querystring: {
+        type: 'object',
+        required: ['toolSlug'],
+        properties: {
+          toolSlug: {
+            type: 'string',
+            minLength: 1,
+            maxLength: 100,
+          },
+        },
+      },
     },
   }, async (request, reply) => {
     const { toolSlug } = request.query as { toolSlug: string };
@@ -53,8 +45,35 @@ export async function userVariablesRoutes(fastify: FastifyInstance): Promise<voi
   // PUT /user-variables
   fastify.put('/user-variables', {
     preHandler: [authenticate],
+    schema: {
+      body: {
+        type: 'object',
+        required: ['toolSlug', 'key', 'value'],
+        properties: {
+          toolSlug: {
+            type: 'string',
+            minLength: 1,
+            maxLength: 100,
+          },
+          key: {
+            type: 'string',
+            minLength: 1,
+            maxLength: 100,
+          },
+          value: {},
+          lessonId: {
+            type: 'string',
+            format: 'uuid',
+          },
+          courseId: {
+            type: 'string',
+            format: 'uuid',
+          },
+        },
+      },
+    },
   }, async (request, reply) => {
-    const body = upsertSchema.parse(request.body);
+    const body = request.body as { toolSlug: string; key: string; value: unknown; lessonId?: string; courseId?: string };
 
     const variable = await prisma.userVariable.upsert({
       where: {
@@ -68,12 +87,12 @@ export async function userVariablesRoutes(fastify: FastifyInstance): Promise<voi
         userId: request.user!.id,
         toolSlug: body.toolSlug,
         key: body.key,
-        value: body.value,
+        value: body.value as any,
         lessonId: body.lessonId,
         courseId: body.courseId,
       },
       update: {
-        value: body.value,
+        value: body.value as any,
         lessonId: body.lessonId,
         courseId: body.courseId,
       },
@@ -89,8 +108,33 @@ export async function userVariablesRoutes(fastify: FastifyInstance): Promise<voi
   // POST /user-variables/bulk
   fastify.post('/user-variables/bulk', {
     preHandler: [authenticate],
+    schema: {
+      body: {
+        type: 'object',
+        required: ['toolSlug', 'variables'],
+        properties: {
+          toolSlug: {
+            type: 'string',
+            minLength: 1,
+            maxLength: 100,
+          },
+          variables: {
+            type: 'object',
+            additionalProperties: true,
+          },
+          lessonId: {
+            type: 'string',
+            format: 'uuid',
+          },
+          courseId: {
+            type: 'string',
+            format: 'uuid',
+          },
+        },
+      },
+    },
   }, async (request, reply) => {
-    const body = bulkUpsertSchema.parse(request.body);
+    const body = request.body as { toolSlug: string; variables: Record<string, unknown>; lessonId?: string; courseId?: string };
 
     const results: Array<{ key: string; value: unknown }> = [];
 
@@ -108,12 +152,12 @@ export async function userVariablesRoutes(fastify: FastifyInstance): Promise<voi
             userId: request.user!.id,
             toolSlug: body.toolSlug,
             key,
-            value,
+            value: value as any,
             lessonId: body.lessonId,
             courseId: body.courseId,
           },
           update: {
-            value,
+            value: value as any,
             lessonId: body.lessonId,
             courseId: body.courseId,
           },

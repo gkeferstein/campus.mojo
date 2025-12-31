@@ -147,6 +147,54 @@ const collections = [
       { field: 'is_correct', type: 'boolean', meta: { width: 'half' }, schema: { default_value: false } },
     ],
   },
+  {
+    collection: 'tool_suites',
+    meta: {
+      icon: 'apps',
+      note: 'Tool Suites - Hauptkategorien für Tools',
+      display_template: '{{name}}',
+      sort_field: 'order_index',
+    },
+    schema: {},
+    fields: [
+      { field: 'id', type: 'uuid', meta: { hidden: true }, schema: { is_primary_key: true, has_auto_increment: false } },
+      { field: 'name', type: 'string', meta: { required: true, width: 'half' }, schema: { is_nullable: false } },
+      { field: 'slug', type: 'string', meta: { required: true, width: 'half' }, schema: { is_unique: true, is_nullable: false } },
+      { field: 'description', type: 'text', meta: { interface: 'input-multiline' }, schema: {} },
+      { field: 'icon', type: 'string', meta: { width: 'half', note: 'Icon name (e.g. heart, dumbbell, wallet)' }, schema: {} },
+      { field: 'color', type: 'string', meta: { width: 'half', note: 'Color name (e.g. red, blue, green)' }, schema: {} },
+      { field: 'order_index', type: 'integer', meta: { width: 'half' }, schema: { default_value: 0 } },
+      { field: 'published', type: 'boolean', meta: { width: 'half' }, schema: { default_value: false } },
+      { field: 'tenant_id', type: 'uuid', meta: { width: 'half', note: 'Optional tenant restriction' }, schema: {} },
+      { field: 'date_created', type: 'timestamp', meta: { readonly: true, hidden: true, special: ['date-created'] } },
+      { field: 'date_updated', type: 'timestamp', meta: { readonly: true, hidden: true, special: ['date-updated'] } },
+    ],
+  },
+  {
+    collection: 'tools',
+    meta: {
+      icon: 'build',
+      note: 'Tools - Einzelne Tools innerhalb einer Suite',
+      display_template: '{{name}}',
+      sort_field: 'order_index',
+    },
+    schema: {},
+    fields: [
+      { field: 'id', type: 'uuid', meta: { hidden: true }, schema: { is_primary_key: true, has_auto_increment: false } },
+      { field: 'suite_id', type: 'uuid', meta: { required: true, interface: 'select-dropdown-m2o' }, schema: { foreign_key_table: 'tool_suites' } },
+      { field: 'name', type: 'string', meta: { required: true, width: 'half' }, schema: { is_nullable: false } },
+      { field: 'slug', type: 'string', meta: { required: true, width: 'half' }, schema: { is_nullable: false } },
+      { field: 'description', type: 'text', meta: { interface: 'input-multiline' }, schema: {} },
+      { field: 'icon', type: 'string', meta: { width: 'half', note: 'Icon name' }, schema: {} },
+      { field: 'component_slug', type: 'string', meta: { required: true, width: 'half', note: 'React component identifier (e.g. vo2max-calculator)' }, schema: { is_nullable: false } },
+      { field: 'status', type: 'string', meta: { required: true, width: 'half', interface: 'select-dropdown', options: { choices: [{ text: 'Available', value: 'available' }, { text: 'Coming Soon', value: 'coming-soon' }, { text: 'Beta', value: 'beta' }, { text: 'Deprecated', value: 'deprecated' }] } }, schema: { default_value: 'coming-soon' } },
+      { field: 'order_index', type: 'integer', meta: { width: 'half' }, schema: { default_value: 0 } },
+      { field: 'config', type: 'json', meta: { interface: 'input-code', options: { language: 'json' }, note: 'Tool-specific configuration' }, schema: {} },
+      { field: 'published', type: 'boolean', meta: { width: 'half' }, schema: { default_value: false } },
+      { field: 'date_created', type: 'timestamp', meta: { readonly: true, hidden: true, special: ['date-created'] } },
+      { field: 'date_updated', type: 'timestamp', meta: { readonly: true, hidden: true, special: ['date-updated'] } },
+    ],
+  },
 ];
 
 // Sample content
@@ -437,6 +485,206 @@ const sampleAnswerOptions = [
   { id: '550e8400-e29b-41d4-a716-446655440067', question_id: sampleQuestions[1].id, label: '(T)', is_correct: false },
 ];
 
+// Tool Suites Seed Data
+const toolSuites = [
+  {
+    id: '660e8400-e29b-41d4-a716-446655440001',
+    name: 'Gesundheitsanalysen',
+    slug: 'health',
+    description: 'Umfassende Tools zur Analyse und Optimierung deiner Gesundheit',
+    icon: 'heart',
+    color: 'red',
+    order_index: 1,
+    published: true,
+    tenant_id: null,
+  },
+  {
+    id: '660e8400-e29b-41d4-a716-446655440002',
+    name: 'Trainingsplaner',
+    slug: 'training',
+    description: 'Professionelle Tools für dein Training und deine Fitness',
+    icon: 'dumbbell',
+    color: 'blue',
+    order_index: 2,
+    published: true,
+    tenant_id: null,
+  },
+  {
+    id: '660e8400-e29b-41d4-a716-446655440003',
+    name: 'Finanzen',
+    slug: 'finance',
+    description: 'Tools für deine finanzielle Planung und Optimierung',
+    icon: 'wallet',
+    color: 'green',
+    order_index: 3,
+    published: true,
+    tenant_id: null,
+  },
+];
+
+// Tools Seed Data
+const tools = [
+  // Gesundheitsanalysen Tools
+  {
+    id: '770e8400-e29b-41d4-a716-446655440001',
+    suite_id: toolSuites[0].id,
+    name: 'VO2Max Rechner',
+    slug: 'vo2max',
+    description: 'Berechne deine maximale Sauerstoffaufnahme basierend auf deinen Fitnessdaten',
+    icon: 'activity',
+    component_slug: 'vo2max-calculator',
+    status: 'available',
+    order_index: 1,
+    config: null,
+    published: true,
+  },
+  {
+    id: '770e8400-e29b-41d4-a716-446655440002',
+    suite_id: toolSuites[0].id,
+    name: 'Schlafanalyse',
+    slug: 'sleep',
+    description: 'Analysiere deine Schlafqualität und optimiere deine Regeneration',
+    icon: 'moon',
+    component_slug: 'sleep-analyzer',
+    status: 'coming-soon',
+    order_index: 2,
+    config: null,
+    published: false,
+  },
+  {
+    id: '770e8400-e29b-41d4-a716-446655440003',
+    suite_id: toolSuites[0].id,
+    name: 'Stress-Level Assessment',
+    slug: 'stress',
+    description: 'Ermittle dein aktuelles Stresslevel und erhalte personalisierte Empfehlungen',
+    icon: 'brain',
+    component_slug: 'stress-assessment',
+    status: 'coming-soon',
+    order_index: 3,
+    config: null,
+    published: false,
+  },
+  {
+    id: '770e8400-e29b-41d4-a716-446655440004',
+    suite_id: toolSuites[0].id,
+    name: 'Energie-Tracking',
+    slug: 'energy',
+    description: 'Tracke deine Energielevel über den Tag und identifiziere Muster',
+    icon: 'zap',
+    component_slug: 'energy-tracker',
+    status: 'coming-soon',
+    order_index: 4,
+    config: null,
+    published: false,
+  },
+  // Trainingsplaner Tools
+  {
+    id: '770e8400-e29b-41d4-a716-446655440010',
+    suite_id: toolSuites[1].id,
+    name: 'Trainingsplan Generator',
+    slug: 'planner',
+    description: 'Erstelle personalisierte Trainingspläne basierend auf deinen Zielen und deinem Level',
+    icon: 'calendar',
+    component_slug: 'training-planner',
+    status: 'coming-soon',
+    order_index: 1,
+    config: null,
+    published: false,
+  },
+  {
+    id: '770e8400-e29b-41d4-a716-446655440011',
+    suite_id: toolSuites[1].id,
+    name: 'Progress Tracker',
+    slug: 'progress',
+    description: 'Verfolge deine Trainingsfortschritte über Zeit und visualisiere deine Entwicklung',
+    icon: 'trending-up',
+    component_slug: 'training-progress',
+    status: 'coming-soon',
+    order_index: 2,
+    config: null,
+    published: false,
+  },
+  {
+    id: '770e8400-e29b-41d4-a716-446655440012',
+    suite_id: toolSuites[1].id,
+    name: 'Wiederholungsrechner',
+    slug: 'reps',
+    description: 'Berechne optimale Wiederholungen und Sätze für deine Trainingsziele',
+    icon: 'target',
+    component_slug: 'rep-calculator',
+    status: 'coming-soon',
+    order_index: 3,
+    config: null,
+    published: false,
+  },
+  {
+    id: '770e8400-e29b-41d4-a716-446655440013',
+    suite_id: toolSuites[1].id,
+    name: 'Erholungszeit Optimierer',
+    slug: 'recovery',
+    description: 'Bestimme die optimale Erholungszeit zwischen deinen Trainingseinheiten',
+    icon: 'clock',
+    component_slug: 'recovery-optimizer',
+    status: 'coming-soon',
+    order_index: 4,
+    config: null,
+    published: false,
+  },
+  // Finanzen Tools
+  {
+    id: '770e8400-e29b-41d4-a716-446655440020',
+    suite_id: toolSuites[2].id,
+    name: 'Budget Planer',
+    slug: 'budget',
+    description: 'Erstelle und verwalte dein persönliches Budget für optimale Finanzplanung',
+    icon: 'calculator',
+    component_slug: 'budget-planner',
+    status: 'coming-soon',
+    order_index: 1,
+    config: null,
+    published: false,
+  },
+  {
+    id: '770e8400-e29b-41d4-a716-446655440021',
+    suite_id: toolSuites[2].id,
+    name: 'Sparziel Rechner',
+    slug: 'savings',
+    description: 'Berechne, wie lange du sparen musst, um deine finanziellen Ziele zu erreichen',
+    icon: 'piggy-bank',
+    component_slug: 'savings-calculator',
+    status: 'coming-soon',
+    order_index: 2,
+    config: null,
+    published: false,
+  },
+  {
+    id: '770e8400-e29b-41d4-a716-446655440022',
+    suite_id: toolSuites[2].id,
+    name: 'Investitionsanalyse',
+    slug: 'investment',
+    description: 'Analysiere Investitionsmöglichkeiten und berechne potenzielle Renditen',
+    icon: 'trending-up',
+    component_slug: 'investment-analyzer',
+    status: 'coming-soon',
+    order_index: 3,
+    config: null,
+    published: false,
+  },
+  {
+    id: '770e8400-e29b-41d4-a716-446655440023',
+    suite_id: toolSuites[2].id,
+    name: 'Steueroptimierung',
+    slug: 'tax',
+    description: 'Optimiere deine Steuerlast mit intelligenten Berechnungen und Empfehlungen',
+    icon: 'receipt',
+    component_slug: 'tax-optimizer',
+    status: 'coming-soon',
+    order_index: 4,
+    config: null,
+    published: false,
+  },
+];
+
 async function createCollection(collection) {
   try {
     console.log(`  Creating collection: ${collection.collection}`);
@@ -515,12 +763,32 @@ async function main() {
   }
   console.log(`  ✅ ${sampleAnswerOptions.length} answer options created`);
 
+  // Step 3: Create tool suites and tools
+  console.log('\n🔧 Creating tool suites and tools...');
+
+  console.log('  Creating tool suites...');
+  for (const suite of toolSuites) {
+    await createItem('tool_suites', suite);
+  }
+  console.log(`  ✅ ${toolSuites.length} tool suites created`);
+
+  console.log('  Creating tools...');
+  for (const tool of tools) {
+    await createItem('tools', tool);
+  }
+  console.log(`  ✅ ${tools.length} tools created`);
+
   console.log('\n✨ Seeding complete!');
   console.log('\n📚 Sample Course:');
   console.log(`   Title: ${sampleCourse.title}`);
   console.log(`   Slug: ${sampleCourse.slug}`);
   console.log(`   Modules: ${sampleModules.length}`);
   console.log(`   Lessons: ${sampleLessons.length}`);
+  console.log('\n🔧 Tool Suites:');
+  for (const suite of toolSuites) {
+    const suiteTools = tools.filter(t => t.suite_id === suite.id);
+    console.log(`   ${suite.name} (${suite.slug}): ${suiteTools.length} tools`);
+  }
 }
 
 main().catch((error) => {

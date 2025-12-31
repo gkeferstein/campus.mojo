@@ -196,6 +196,64 @@ export async function getTotalLessonsForCourse(courseId: string): Promise<number
   }
 }
 
+// ============================================
+// Tool Suites & Tools Types
+// ============================================
+
+export interface ToolSuite {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  icon: string | null;
+  color: string | null;
+  order_index: number;
+  published: boolean;
+  tenant_id: string | null;
+  tools?: Tool[];
+}
+
+export interface Tool {
+  id: string;
+  suite_id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  icon: string | null;
+  component_slug: string;
+  status: 'available' | 'coming-soon' | 'beta' | 'deprecated';
+  order_index: number;
+  config: Record<string, unknown> | null;
+  published: boolean;
+}
+
+// ============================================
+// Tool Suites & Tools API Functions
+// ============================================
+
+export async function getToolSuites(tenantId?: string): Promise<ToolSuite[]> {
+  const filter = tenantId 
+    ? `&filter[_or][0][tenant_id][_null]=true&filter[_or][1][tenant_id][_eq]=${tenantId}`
+    : '&filter[tenant_id][_null]=true';
+  
+  return directusFetch<ToolSuite[]>(
+    `/items/tool_suites?filter[published][_eq]=true${filter}&sort=order_index&fields=*,tools.id,tools.name,tools.slug,tools.description,tools.icon,tools.component_slug,tools.status,tools.order_index,tools.published&deep[tools][_sort]=order_index`
+  );
+}
+
+export async function getToolSuiteBySlug(slug: string): Promise<ToolSuite | null> {
+  const suites = await directusFetch<ToolSuite[]>(
+    `/items/tool_suites?filter[slug][_eq]=${slug}&filter[published][_eq]=true&fields=*,tools.id,tools.name,tools.slug,tools.description,tools.icon,tools.component_slug,tools.status,tools.order_index,tools.published&deep[tools][_sort]=order_index`
+  );
+  return suites[0] || null;
+}
+
+export async function getToolBySlug(suiteSlug: string, toolSlug: string): Promise<Tool | null> {
+  const suite = await getToolSuiteBySlug(suiteSlug);
+  if (!suite || !suite.tools) return null;
+  return suite.tools.find(t => t.slug === toolSlug) || null;
+}
+
 
 
 

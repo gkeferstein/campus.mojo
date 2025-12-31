@@ -1,28 +1,23 @@
 import { FastifyInstance } from 'fastify';
-import { z } from 'zod';
 import { authenticate } from '../middleware/auth.js';
 import { prisma } from '../lib/prisma.js';
 import { getQuizById } from '../lib/directus.js';
-
-const submitSchema = z.object({
-  responses: z.array(z.object({
-    questionId: z.string(),
-    answer: z.union([
-      z.string(), // short_answer
-      z.string(), // single_choice (option ID)
-      z.array(z.string()), // multi_choice (option IDs)
-    ]),
-  })),
-});
 
 export async function quizRoutes(fastify: FastifyInstance): Promise<void> {
   // POST /quiz/:quizId/start - Start a quiz attempt
   fastify.post('/quiz/:quizId/start', {
     preHandler: [authenticate],
     schema: {
-      params: z.object({
-        quizId: z.string().uuid(),
-      }),
+      params: {
+        type: 'object',
+        required: ['quizId'],
+        properties: {
+          quizId: {
+            type: 'string',
+            format: 'uuid',
+          },
+        },
+      },
     },
   }, async (request, reply) => {
     const { quizId } = request.params as { quizId: string };
@@ -96,13 +91,44 @@ export async function quizRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.post('/quiz/:quizId/submit', {
     preHandler: [authenticate],
     schema: {
-      params: z.object({
-        quizId: z.string().uuid(),
-      }),
+      params: {
+        type: 'object',
+        required: ['quizId'],
+        properties: {
+          quizId: {
+            type: 'string',
+            format: 'uuid',
+          },
+        },
+      },
+      body: {
+        type: 'object',
+        required: ['responses'],
+        properties: {
+          responses: {
+            type: 'array',
+            items: {
+              type: 'object',
+              required: ['questionId', 'answer'],
+              properties: {
+                questionId: {
+                  type: 'string',
+                },
+                answer: {
+                  oneOf: [
+                    { type: 'string' },
+                    { type: 'array', items: { type: 'string' } },
+                  ],
+                },
+              },
+            },
+          },
+        },
+      },
     },
   }, async (request, reply) => {
     const { quizId } = request.params as { quizId: string };
-    const body = submitSchema.parse(request.body);
+    const body = request.body as { responses: Array<{ questionId: string; answer: string | string[] }> };
 
     // Get quiz from Directus
     const quiz = await getQuizById(quizId);
@@ -218,9 +244,16 @@ export async function quizRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.get('/quiz/:quizId/attempts', {
     preHandler: [authenticate],
     schema: {
-      params: z.object({
-        quizId: z.string().uuid(),
-      }),
+      params: {
+        type: 'object',
+        required: ['quizId'],
+        properties: {
+          quizId: {
+            type: 'string',
+            format: 'uuid',
+          },
+        },
+      },
     },
   }, async (request, reply) => {
     const { quizId } = request.params as { quizId: string };

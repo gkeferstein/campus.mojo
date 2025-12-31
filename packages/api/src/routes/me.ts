@@ -1,13 +1,6 @@
 import { FastifyInstance } from 'fastify';
-import { z } from 'zod';
 import { authenticate } from '../middleware/auth.js';
 import { prisma } from '../lib/prisma.js';
-
-const updateProfileSchema = z.object({
-  firstName: z.string().optional(),
-  lastName: z.string().optional(),
-  avatarUrl: z.string().url().optional(),
-});
 
 export async function meRoutes(fastify: FastifyInstance): Promise<void> {
   // Get current user
@@ -49,8 +42,25 @@ export async function meRoutes(fastify: FastifyInstance): Promise<void> {
   // Update profile
   fastify.patch('/me', {
     preHandler: [authenticate],
+    schema: {
+      body: {
+        type: 'object',
+        properties: {
+          firstName: {
+            type: 'string',
+          },
+          lastName: {
+            type: 'string',
+          },
+          avatarUrl: {
+            type: 'string',
+            format: 'uri',
+          },
+        },
+      },
+    },
   }, async (request, reply) => {
-    const body = updateProfileSchema.parse(request.body);
+    const body = request.body as { firstName?: string; lastName?: string; avatarUrl?: string };
 
     const user = await prisma.user.update({
       where: { id: request.user!.id },

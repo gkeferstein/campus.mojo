@@ -1,0 +1,163 @@
+'use client';
+
+/**
+ * Finance Tools Suite
+ * Suite für finanzielle Planung und Optimierung
+ */
+
+import { motion } from 'framer-motion';
+import { Wallet, ArrowLeft, Sparkles, Calculator, PiggyBank, TrendingUp, Receipt } from 'lucide-react';
+import Link from 'next/link';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+
+const FINANCE_TOOLS = [
+  {
+    id: 'budget',
+    name: 'Budget Planer',
+    description: 'Erstelle und verwalte dein persönliches Budget für optimale Finanzplanung',
+    icon: Calculator,
+    status: 'coming-soon',
+    href: null,
+  },
+  {
+    id: 'savings',
+    name: 'Sparziel Rechner',
+    description: 'Berechne, wie lange du sparen musst, um deine finanziellen Ziele zu erreichen',
+    icon: PiggyBank,
+    status: 'coming-soon',
+    href: null,
+  },
+  {
+    id: 'investment',
+    name: 'Investitionsanalyse',
+    description: 'Analysiere Investitionsmöglichkeiten und berechne potenzielle Renditen',
+    icon: TrendingUp,
+    status: 'coming-soon',
+    href: null,
+  },
+  {
+    id: 'tax',
+    name: 'Steueroptimierung',
+    description: 'Optimiere deine Steuerlast mit intelligenten Berechnungen und Empfehlungen',
+    icon: Receipt,
+    status: 'coming-soon',
+    href: null,
+  },
+];
+
+export default function FinanceToolsPage() {
+  return (
+    <DashboardLayout>
+      <div className="space-y-8">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="space-y-4"
+        >
+          <Link href="/tools">
+            <Button variant="ghost" className="mb-4">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Zurück zu Werkzeugen
+            </Button>
+          </Link>
+          
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-green-500/10 flex items-center justify-center">
+              <Wallet className="w-6 h-6 text-green-500" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold">Finanzen</h1>
+              <p className="text-muted-foreground mt-1">
+                Tools für deine finanzielle Planung und Optimierung
+              </p>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Tools Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {FINANCE_TOOLS.map((tool, index) => {
+            const Icon = tool.icon;
+            const isAvailable = tool.status === 'available';
+            
+            return (
+              <motion.div
+                key={tool.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1, duration: 0.5 }}
+              >
+                <Card className={cn(
+                  'h-full transition-all duration-300',
+                  isAvailable 
+                    ? 'hover:shadow-lg cursor-pointer border-primary/20 hover:border-primary/40' 
+                    : 'opacity-60 border-muted'
+                )}>
+                  <CardHeader>
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="w-14 h-14 rounded-xl bg-green-500/10 flex items-center justify-center">
+                        <Icon className="w-7 h-7 text-green-500" />
+                      </div>
+                      {!isAvailable && (
+                        <span className="text-xs font-medium bg-muted text-muted-foreground px-2 py-1 rounded">
+                          Bald verfügbar
+                        </span>
+                      )}
+                    </div>
+                    <CardTitle className="text-xl mb-2">{tool.name}</CardTitle>
+                    <CardDescription>{tool.description}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {isAvailable && tool.href ? (
+                      <Link href={tool.href}>
+                        <Button className="w-full">
+                          Tool öffnen
+                          <Sparkles className="w-4 h-4 ml-2" />
+                        </Button>
+                      </Link>
+                    ) : (
+                      <Button disabled className="w-full">
+                        Bald verfügbar
+                      </Button>
+                    )}
+                  </CardContent>
+                </Card>
+              </motion.div>
+            );
+          })}
+        </div>
+
+        {/* Info Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4, duration: 0.5 }}
+        >
+          <Card className="bg-card/50 backdrop-blur-sm border-primary/20">
+            <CardContent className="pt-6">
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center shrink-0">
+                  <Wallet className="w-5 h-5 text-green-500" />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="font-semibold">Über Finanz-Tools</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Diese Tools unterstützen dich bei der Planung und Optimierung deiner Finanzen. 
+                    Von der Budgetplanung über Sparziele bis zur Investitionsanalyse – nutze 
+                    datenbasierte Erkenntnisse für deine finanzielle Zukunft.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
+    </DashboardLayout>
+  );
+}
+
