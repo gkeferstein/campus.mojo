@@ -179,9 +179,16 @@ export async function coursesRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.post('/courses/:courseId/enroll', {
     preHandler: [authenticate],
     schema: {
-      params: z.object({
-        courseId: z.string().uuid(),
-      }),
+      params: {
+        type: 'object',
+        required: ['courseId'],
+        properties: {
+          courseId: {
+            type: 'string',
+            format: 'uuid',
+          },
+        },
+      },
     },
   }, async (request, reply) => {
     const { courseId } = request.params as { courseId: string };
