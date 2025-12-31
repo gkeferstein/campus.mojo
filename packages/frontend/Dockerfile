@@ -58,8 +58,9 @@ RUN if [ -n "$GITHUB_TOKEN" ]; then \
 COPY --from=deps /app/package.json ./package.json
 COPY --from=deps /app/node_modules ./node_modules
 
-# Copy design.mojo if it was used as fallback (check if it exists)
-COPY --from=deps /app/../design.mojo ../design.mojo 2>/dev/null || echo "⚠️ design.mojo not found, using GitHub Packages version"
+# Copy design.mojo if it was used as fallback (optional, may not exist)
+# If design.mojo was cloned in deps stage, copy it; otherwise it's from GitHub Packages
+COPY --from=deps /app/../design.mojo* ../design.mojo/ 2>/dev/null || true
 
 # Copy frontend source files
 COPY src ./src
