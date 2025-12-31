@@ -780,13 +780,13 @@ jobs:
           run_compose down || true
           
           # Create docker-compose.override.yml to use pulled images instead of building
-          cat > docker-compose.override.yml << EOF
-          services:
-            api:
-              image: campus-api:latest
-            frontend:
-              image: campus-frontend:latest
-          EOF
+          cat > docker-compose.override.yml << 'EOF'
+services:
+  api:
+    image: campus-api:latest
+  frontend:
+    image: campus-frontend:latest
+EOF
           
           # Start services with new images
           echo "🚀 Starting services with version $VERSION..."
