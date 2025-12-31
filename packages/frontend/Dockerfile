@@ -15,21 +15,20 @@ RUN if [ -n "$GITHUB_TOKEN" ]; then \
 # Install git for cloning design.mojo
 RUN apk add --no-cache git
 
-# Clone design.mojo repository (needed for @gkeferstein/design package)
-RUN if [ -n "$GITHUB_TOKEN" ]; then \
-      git clone --depth 1 https://${GITHUB_TOKEN}@github.com/gkeferstein/design.mojo.git /tmp/design.mojo || \
-      git clone --depth 1 https://github.com/gkeferstein/design.mojo.git /tmp/design.mojo; \
-    else \
-      git clone --depth 1 https://github.com/gkeferstein/design.mojo.git /tmp/design.mojo; \
-    fi
-
 # Copy frontend package.json first
 COPY package.json ./
 
+# Clone design.mojo repository (needed for @gkeferstein/design package)
+# Clone to /app/design.mojo so it's accessible from the build context
+RUN if [ -n "$GITHUB_TOKEN" ]; then \
+      git clone --depth 1 https://${GITHUB_TOKEN}@github.com/gkeferstein/design.mojo.git /app/design.mojo || \
+      git clone --depth 1 https://github.com/gkeferstein/design.mojo.git /app/design.mojo; \
+    else \
+      git clone --depth 1 https://github.com/gkeferstein/design.mojo.git /app/design.mojo; \
+    fi
+
 # Update package.json to use local design.mojo package
-RUN mkdir -p ../../../design.mojo/packages && \
-    cp -r /tmp/design.mojo/packages/design ../../../design.mojo/packages/ && \
-    sed -i 's|"@gkeferstein/design": ".*"|"@gkeferstein/design": "file:../../../design.mojo/packages/design"|g' package.json || true
+RUN sed -i 's|"@gkeferstein/design": ".*"|"@gkeferstein/design": "file:../design.mojo/packages/design"|g' package.json || true
 
 # Configure npm for GitHub Packages (if not already configured)
 RUN if [ -n "$GITHUB_TOKEN" ] && [ ! -f ~/.npmrc ]; then \
