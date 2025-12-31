@@ -752,9 +752,39 @@ jobs:
           # Reset docker-compose.yml to clean state from git
           git checkout HEAD -- docker-compose.yml || true
           
-          # Ensure .env file exists (should already be on server, but check)
+          # Create .env file if it doesn't exist
           if [ ! -f .env ]; then
-            echo "⚠️ Warning: .env file not found. Services may fail without environment variables."
+            echo "📝 Creating .env file with required variables..."
+            cat > .env << 'ENV_EOF'
+# Database Configuration
+POSTGRES_USER=campus
+POSTGRES_PASSWORD=CHANGE_ME_PLEASE
+POSTGRES_DB=campus_lms
+
+# Directus CMS Configuration
+DIRECTUS_KEY=CHANGE_ME_PLEASE
+DIRECTUS_SECRET=CHANGE_ME_PLEASE
+DIRECTUS_ADMIN_EMAIL=admin@mojo-institut.de
+DIRECTUS_ADMIN_PASSWORD=CHANGE_ME_PLEASE
+DIRECTUS_ADMIN_TOKEN=CHANGE_ME_PLEASE
+DIRECTUS_PUBLIC_URL=https://campus.mojo-institut.de/cms
+
+# API Configuration
+JWT_SECRET=CHANGE_ME_PLEASE
+JWT_EXPIRES_IN=7d
+WEBHOOK_SECRET=CHANGE_ME_PLEASE
+
+# Clerk Configuration
+CLERK_SECRET_KEY=CHANGE_ME_PLEASE
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=CHANGE_ME_PLEASE
+
+# Frontend Configuration
+NEXT_PUBLIC_API_URL=https://campus.mojo-institut.de/api
+NEXT_PUBLIC_DIRECTUS_URL=https://campus.mojo-institut.de/cms
+ENV_EOF
+            echo "⚠️ Warning: .env file created with placeholder values. Please update with actual values!"
+          else
+            echo "✅ .env file already exists"
           fi
           
           echo "$GITHUB_TOKEN" | docker login ${REGISTRY} -u ${GITHUB_ACTOR} --password-stdin
