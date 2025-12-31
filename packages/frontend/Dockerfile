@@ -15,13 +15,25 @@ RUN if [ -n "$GITHUB_TOKEN" ]; then \
 # Copy frontend package.json first
 COPY package.json ./
 
-# @gkeferstein/design is published to GitHub Packages, install directly
-# npmrc is already configured above if GITHUB_TOKEN is provided
+# Install git for cloning design.mojo as fallback
+RUN apk add --no-cache git
 
-# Install dependencies (including @gkeferstein/design from GitHub Packages)
-RUN npm install --legacy-peer-deps && \
+# Try to install dependencies from GitHub Packages first
+RUN npm install --legacy-peer-deps 2>&1 | tee /tmp/npm-install.log || \
+    (echo "⚠️ Installation from GitHub Packages failed, cloning design.mojo as fallback..." && \
+     if [ -n "$GITHUB_TOKEN" ]; then \
+       git clone --depth 1 https://${GITHUB_TOKEN}@github.com/gkeferstein/design.mojo.git /tmp/design.mojo || \
+       git clone --depth 1 https://github.com/gkeferstein/design.mojo.git /tmp/design.mojo; \
+     else \
+       git clone --depth 1 https://github.com/gkeferstein/design.mojo.git /tmp/design.mojo; \
+     fi && \
+     mkdir -p ../design.mojo/packages && \
+     cp -r /tmp/design.mojo/packages/design ../design.mojo/packages/ && \
+     sed -i 's|"@gkeferstein/design": "[^"]*"|"@gkeferstein/design": "file:../design.mojo/packages/design"|g' package.json && \
+     echo "✅ Updated package.json to use local design.mojo" && \
+     npm install --legacy-peer-deps) && \
     echo "✅ Verifying @gkeferstein/design installation:" && \
-    ls -la node_modules/@gkeferstein/design || (echo "❌ @gkeferstein/design not found in node_modules" && exit 1)
+    ls -la node_modules/@gkeferstein/design || (echo "❌ @gkeferstein/design not found in node_modules" && cat /tmp/npm-install.log && exit 1)
 
 FROM node:22-alpine AS builder
 WORKDIR /app
@@ -46,7 +58,8 @@ RUN if [ -n "$GITHUB_TOKEN" ]; then \
 COPY --from=deps /app/package.json ./package.json
 COPY --from=deps /app/node_modules ./node_modules
 
-# @gkeferstein/design is installed from GitHub Packages, no need to copy design.mojo
+# Copy design.mojo if it was used as fallback (check if it exists)
+COPY --from=deps /app/../design.mojo ../design.mojo 2>/dev/null || echo "⚠️ design.mojo not found, using GitHub Packages version"
 
 # Copy frontend source files
 COPY src ./src
