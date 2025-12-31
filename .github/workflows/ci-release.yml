@@ -752,29 +752,37 @@ jobs:
           # Reset docker-compose.yml to clean state from git
           git checkout HEAD -- docker-compose.yml || true
           
-          # Create .env file if it doesn't exist
+          # Create .env file if it doesn't exist with secure random values
           if [ ! -f .env ]; then
             echo "📝 Creating .env file with required variables..."
-            cat > .env << 'ENV_EOF'
+            # Generate secure random passwords
+            POSTGRES_PASSWORD=$(openssl rand -base64 32 | tr -d "=+/" | cut -c1-25)
+            DIRECTUS_KEY=$(openssl rand -base64 32 | tr -d "=+/" | cut -c1-25)
+            DIRECTUS_SECRET=$(openssl rand -base64 64 | tr -d "=+/" | cut -c1-50)
+            DIRECTUS_ADMIN_PASSWORD=$(openssl rand -base64 32 | tr -d "=+/" | cut -c1-25)
+            JWT_SECRET=$(openssl rand -base64 64 | tr -d "=+/" | cut -c1-50)
+            WEBHOOK_SECRET=$(openssl rand -base64 32 | tr -d "=+/" | cut -c1-25)
+            
+            cat > .env << ENV_EOF
 # Database Configuration
 POSTGRES_USER=campus
-POSTGRES_PASSWORD=CHANGE_ME_PLEASE
+POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
 POSTGRES_DB=campus_lms
 
 # Directus CMS Configuration
-DIRECTUS_KEY=CHANGE_ME_PLEASE
-DIRECTUS_SECRET=CHANGE_ME_PLEASE
+DIRECTUS_KEY=${DIRECTUS_KEY}
+DIRECTUS_SECRET=${DIRECTUS_SECRET}
 DIRECTUS_ADMIN_EMAIL=admin@mojo-institut.de
-DIRECTUS_ADMIN_PASSWORD=CHANGE_ME_PLEASE
-DIRECTUS_ADMIN_TOKEN=CHANGE_ME_PLEASE
+DIRECTUS_ADMIN_PASSWORD=${DIRECTUS_ADMIN_PASSWORD}
+DIRECTUS_ADMIN_TOKEN=
 DIRECTUS_PUBLIC_URL=https://campus.mojo-institut.de/cms
 
 # API Configuration
-JWT_SECRET=CHANGE_ME_PLEASE
+JWT_SECRET=${JWT_SECRET}
 JWT_EXPIRES_IN=7d
-WEBHOOK_SECRET=CHANGE_ME_PLEASE
+WEBHOOK_SECRET=${WEBHOOK_SECRET}
 
-# Clerk Configuration
+# Clerk Configuration (MUST be updated with actual values)
 CLERK_SECRET_KEY=CHANGE_ME_PLEASE
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=CHANGE_ME_PLEASE
 
@@ -782,7 +790,8 @@ NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=CHANGE_ME_PLEASE
 NEXT_PUBLIC_API_URL=https://campus.mojo-institut.de/api
 NEXT_PUBLIC_DIRECTUS_URL=https://campus.mojo-institut.de/cms
 ENV_EOF
-            echo "⚠️ Warning: .env file created with placeholder values. Please update with actual values!"
+            echo "✅ .env file created with secure random values"
+            echo "⚠️ Warning: CLERK_SECRET_KEY and NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY must be updated with actual values!"
           else
             echo "✅ .env file already exists"
           fi
