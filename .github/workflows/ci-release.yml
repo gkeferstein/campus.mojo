@@ -752,6 +752,11 @@ jobs:
           # Reset docker-compose.yml to clean state from git
           git checkout HEAD -- docker-compose.yml || true
           
+          # Ensure .env file exists (should already be on server, but check)
+          if [ ! -f .env ]; then
+            echo "⚠️ Warning: .env file not found. Services may fail without environment variables."
+          fi
+          
           echo "$GITHUB_TOKEN" | docker login ${REGISTRY} -u ${GITHUB_ACTOR} --password-stdin
           
           if docker compose version >/dev/null 2>&1; then
