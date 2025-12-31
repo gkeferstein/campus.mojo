@@ -29,13 +29,20 @@ RUN if [ -n "$GITHUB_TOKEN" ]; then \
     cp -r /tmp/design.mojo/packages/design /app/design.mojo/packages/
 
 # Try to install from GitHub Packages first, fallback to local file: link
-RUN npm install --legacy-peer-deps 2>&1 | tee /tmp/npm-install.log || \
-    (echo "⚠️ Installation from GitHub Packages failed, using local design.mojo..." && \
-     sed -i 's|"@gkeferstein/design": "[^"]*"|"@gkeferstein/design": "file:../design.mojo/packages/design"|g' package.json && \
-     echo "✅ Updated package.json to use local design.mojo" && \
-     npm install --legacy-peer-deps) && \
+RUN set +e && \
+    npm install --legacy-peer-deps 2>&1 | tee /tmp/npm-install.log; \
+    INSTALL_EXIT=$?; \
+    if [ $INSTALL_EXIT -ne 0 ] || [ ! -d "node_modules/@gkeferstein/design" ]; then \
+      echo "⚠️ Installation from GitHub Packages failed or package not found, using local design.mojo..." && \
+      sed -i 's|"@gkeferstein/design": "[^"]*"|"@gkeferstein/design": "file:../design.mojo/packages/design"|g' package.json && \
+      echo "✅ Updated package.json:" && \
+      grep "@gkeferstein/design" package.json && \
+      echo "✅ Installing with local design.mojo..." && \
+      npm install --legacy-peer-deps || exit 1; \
+    fi && \
+    set -e && \
     echo "✅ Verifying @gkeferstein/design installation:" && \
-    ls -la node_modules/@gkeferstein/design || (echo "❌ @gkeferstein/design not found in node_modules" && cat /tmp/npm-install.log && exit 1)
+    ls -la node_modules/@gkeferstein/design || (echo "❌ @gkeferstein/design not found in node_modules" && echo "=== npm install log ===" && cat /tmp/npm-install.log && exit 1)
 
 FROM node:22-alpine AS builder
 WORKDIR /app
