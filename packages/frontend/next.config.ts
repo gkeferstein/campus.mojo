@@ -10,6 +10,10 @@ const nextConfig: NextConfig = {
         hostname: "campus.mojo-institut.de",
       },
       {
+        protocol: "https",
+        hostname: "dev.campus.mojo-institut.de",
+      },
+      {
         protocol: "http",
         hostname: "localhost",
       },
