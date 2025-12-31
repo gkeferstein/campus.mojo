@@ -78,7 +78,14 @@ COPY --from=deps /app/package.json ./package.json
 COPY --from=deps /app/node_modules ./node_modules
 
 # Copy design.mojo if it was used as fallback (optional, may not exist)
-COPY --from=deps /app/design.mojo* ../design.mojo/ 2>/dev/null || echo "ℹ️ design.mojo not found, package was installed from GitHub Packages"
+# Use RUN with mount to check if it exists before copying
+RUN --mount=from=deps,source=/app/design.mojo,target=/tmp/check-design \
+    if [ -d /tmp/check-design ]; then \
+      cp -r /tmp/check-design ../design.mojo && \
+      echo "✅ Copied design.mojo from deps stage"; \
+    else \
+      echo "ℹ️ design.mojo not found, package was installed from GitHub Packages"; \
+    fi
 
 # Copy frontend source files
 COPY src ./src
