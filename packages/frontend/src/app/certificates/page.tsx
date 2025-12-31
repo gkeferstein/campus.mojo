@@ -6,6 +6,8 @@
  * Gamification element to motivate users
  */
 
+export const dynamic = 'force-dynamic';
+
 import { motion } from 'framer-motion';
 import { 
   Check, 

@@ -3,6 +3,8 @@ import path from "path";
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  // Disable static generation to avoid Clerk authentication issues during build
+  generateStaticParams: false,
   images: {
     remotePatterns: [
       {
