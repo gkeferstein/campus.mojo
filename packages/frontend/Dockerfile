@@ -15,52 +15,18 @@ RUN if [ -n "$GITHUB_TOKEN" ]; then \
 # Copy frontend package.json first
 COPY package.json ./
 
-# Install git for cloning design.mojo
-RUN apk add --no-cache git
-
-# Clone design.mojo repository (always clone, use as fallback if GitHub Packages fails)
-RUN if [ -n "$GITHUB_TOKEN" ]; then \
-      git clone --depth 1 https://${GITHUB_TOKEN}@github.com/gkeferstein/design.mojo.git /tmp/design.mojo || \
-      git clone --depth 1 https://github.com/gkeferstein/design.mojo.git /tmp/design.mojo; \
-    else \
-      git clone --depth 1 https://github.com/gkeferstein/design.mojo.git /tmp/design.mojo; \
-    fi && \
-    mkdir -p /app/design.mojo/packages && \
-    cp -r /tmp/design.mojo/packages/design /app/design.mojo/packages/
-
-# Try to install from GitHub Packages first, fallback to local file: link
-RUN set -o pipefail; \
-    npm install --legacy-peer-deps > /tmp/npm-install.log 2>&1; \
-    INSTALL_EXIT=$?; \
-    if [ $INSTALL_EXIT -ne 0 ] || [ ! -d "node_modules/@gkeferstein/design" ]; then \
-      echo "⚠️ Installation from GitHub Packages failed or package not found (exit code: $INSTALL_EXIT)" && \
-      echo "=== npm install log ===" && \
-      cat /tmp/npm-install.log && \
-      echo "" && \
-      echo "⚠️ Using local design.mojo as fallback..." && \
-      if [ ! -d "/app/design.mojo/packages/design" ]; then \
-        echo "❌ design.mojo not found at /app/design.mojo/packages/design" && \
-        ls -la /app/design.mojo || echo "design.mojo directory does not exist" && \
-        exit 1; \
-      fi && \
-      sed -i 's|"@gkeferstein/design": "[^"]*"|"@gkeferstein/design": "file:../design.mojo/packages/design"|g' package.json && \
-      echo "✅ Updated package.json:" && \
-      grep "@gkeferstein/design" package.json && \
-      echo "✅ Installing with local design.mojo..." && \
-      npm install --legacy-peer-deps > /tmp/npm-install-local.log 2>&1 || \
-        (echo "❌ Local installation also failed" && echo "=== local npm install log ===" && cat /tmp/npm-install-local.log && exit 1); \
-    else \
-      echo "✅ Successfully installed from GitHub Packages"; \
-    fi && \
+# Install dependencies from GitHub Packages
+# @gkeferstein/design is published to GitHub Packages
+RUN npm install --legacy-peer-deps && \
     echo "✅ Verifying @gkeferstein/design installation:" && \
     if [ ! -d "node_modules/@gkeferstein/design" ]; then \
       echo "❌ @gkeferstein/design not found in node_modules" && \
-      echo "=== npm install log ===" && \
-      cat /tmp/npm-install.log && \
+      echo "Available packages:" && \
+      ls -la node_modules/@gkeferstein/ 2>/dev/null || echo "No @gkeferstein packages found" && \
       exit 1; \
     fi && \
     ls -la node_modules/@gkeferstein/design && \
-    echo "✅ @gkeferstein/design successfully installed"
+    echo "✅ @gkeferstein/design successfully installed from GitHub Packages"
 
 FROM node:22-alpine AS builder
 WORKDIR /app
@@ -85,8 +51,7 @@ RUN if [ -n "$GITHUB_TOKEN" ]; then \
 COPY --from=deps /app/package.json ./package.json
 COPY --from=deps /app/node_modules ./node_modules
 
-# Copy design.mojo from deps stage (always available, used as fallback)
-COPY --from=deps /app/design.mojo ../design.mojo
+# @gkeferstein/design is installed from GitHub Packages, no need to copy design.mojo
 
 # Copy frontend source files
 COPY src ./src
