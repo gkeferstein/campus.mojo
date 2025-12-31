@@ -779,8 +779,14 @@ jobs:
           echo "🛑 Stopping existing containers..."
           run_compose down || true
           
-          # Update docker-compose.yml to use pulled images instead of building
-          sed -i 's|build:|# build:|g; s|^  api:$|  api:\n    image: campus-api:latest|g; s|^  frontend:$|  frontend:\n    image: campus-frontend:latest|g' docker-compose.yml || true
+          # Create docker-compose.override.yml to use pulled images instead of building
+          cat > docker-compose.override.yml << EOF
+          services:
+            api:
+              image: campus-api:latest
+            frontend:
+              image: campus-frontend:latest
+          EOF
           
           # Start services with new images
           echo "🚀 Starting services with version $VERSION..."
