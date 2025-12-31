@@ -294,21 +294,28 @@ jobs:
       - name: Wait for Deployment
         run: |
           echo "⏳ Warte auf Deployment-Initialisierung..."
-          sleep 30
+          sleep 200
 
       - name: Health Check
         run: |
-          MAX_RETRIES=10
+          MAX_RETRIES=15
           APP_NAME="campus"
           HEALTH_URL="https://${APP_NAME}.staging.mojo-institut.de/health"
           
           echo "🔍 Health-Check für ${APP_NAME}..."
+          echo "URL: ${HEALTH_URL}"
           
           for i in $(seq 1 $MAX_RETRIES); do
-            RETRY_DELAY=5
+            RETRY_DELAY=10
             echo "Versuch $i/$MAX_RETRIES..."
             
-            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$HEALTH_URL" 2>/dev/null || echo "000")
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 "$HEALTH_URL" 2>/dev/null || echo "000")
+            RESPONSE=$(curl -s --max-time 15 "$HEALTH_URL" 2>/dev/null || echo "")
+            
+            echo "HTTP Code: $HTTP_CODE"
+            if [ -n "$RESPONSE" ]; then
+              echo "Response: $RESPONSE"
+            fi
             
             if [ "$HTTP_CODE" = "200" ]; then
               echo "✅ Health-Check erfolgreich (HTTP $HTTP_CODE)"
@@ -322,5 +329,6 @@ jobs:
           done
           
           echo "❌ Health-Check nach $MAX_RETRIES Versuchen fehlgeschlagen"
+          echo "Letzte Response: $RESPONSE"
           exit 1
 
