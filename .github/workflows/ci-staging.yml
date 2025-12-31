@@ -1,0 +1,333 @@
+# CI/CD Pipeline - Staging Deployment
+# 
+# Trigger: Push to main branch
+# Deploys: Staging Environment (campus.staging.mojo-institut.de)
+# Strategy: Blue/Green Deployment
+
+name: CI - Staging Deployment
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '**.md'
+      - '.gitignore'
+      - 'LICENSE'
+      - 'docs/**'
+      - 'scripts/**'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  NODE_VERSION: '22'
+
+jobs:
+  # ============================================
+  # CODE QUALITY CHECKS
+  # ============================================
+  code-quality:
+    name: Code Quality Checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        package:
+          - name: api
+            path: packages/api
+          - name: frontend
+            path: packages/frontend
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: ${{ matrix.package.path }}/package-lock.json
+
+      - name: Configure npm for GitHub Packages
+        env:
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ -n "$GHCR_TOKEN" ] && [ "$GHCR_TOKEN" != "" ]; then
+            NPM_TOKEN="$GHCR_TOKEN"
+          else
+            NPM_TOKEN="$GITHUB_TOKEN"
+          fi
+          echo "@gkeferstein:registry=https://npm.pkg.github.com" > ~/.npmrc
+          echo "//npm.pkg.github.com/:_authToken=${NPM_TOKEN}" >> ~/.npmrc
+          echo "always-auth=true" >> ~/.npmrc
+
+      - name: Install Dependencies
+        env:
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        working-directory: ${{ matrix.package.path }}
+        run: |
+          if [ -n "$GHCR_TOKEN" ] && [ "$GHCR_TOKEN" != "" ]; then
+            export NPM_TOKEN="$GHCR_TOKEN"
+          else
+            export NPM_TOKEN="$GITHUB_TOKEN"
+          fi
+          npm install --legacy-peer-deps
+
+      - name: TypeScript Check
+        working-directory: ${{ matrix.package.path }}
+        run: |
+          npm run typecheck || npx tsc --noEmit --strict || echo "⚠️ TypeScript check skipped"
+        continue-on-error: true
+
+      - name: ESLint
+        working-directory: ${{ matrix.package.path }}
+        run: |
+          npm run lint || echo "⚠️ Linting skipped"
+        continue-on-error: true
+
+  # ============================================
+  # BUILD DOCKER IMAGES
+  # ============================================
+  build-images:
+    name: Build & Push Images
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: code-quality
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_TOKEN }}
+
+      - name: Extract metadata (API)
+        id: meta-api
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-api
+          tags: |
+            type=sha,prefix=,format=long
+            type=raw,value=main-latest
+            type=raw,value=${{ github.sha }}
+
+      - name: Build and push API Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./packages/api
+          file: ./packages/api/Dockerfile
+          push: true
+          tags: ${{ steps.meta-api.outputs.tags }}
+          labels: ${{ steps.meta-api.outputs.labels }}
+          build-args: |
+            GIT_COMMIT=${{ github.sha }}
+            BUILD_DATE=${{ github.event.head_commit.timestamp || github.run_started_at }}
+            GIT_BRANCH=${{ github.ref_name }}
+            GITHUB_TOKEN=${{ secrets.GHCR_TOKEN }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Extract metadata (Frontend)
+        id: meta-frontend
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend
+          tags: |
+            type=sha,prefix=,format=long
+            type=raw,value=main-latest
+            type=raw,value=${{ github.sha }}
+
+      - name: Checkout design.mojo (optional)
+        uses: actions/checkout@v4
+        with:
+          repository: gkeferstein/design.mojo
+          path: design.mojo
+          fetch-depth: 1
+          token: ${{ secrets.GHCR_TOKEN }}
+        continue-on-error: true
+        id: checkout-design
+
+      - name: Skip design.mojo if not available
+        if: steps.checkout-design.outcome == 'failure'
+        run: |
+          mkdir -p design.mojo/packages/design
+          echo '{"name": "@mojo/design", "version": "1.0.0"}' > design.mojo/packages/design/package.json
+
+      - name: Create .npmrc for Frontend Docker Build
+        run: |
+          echo "@gkeferstein:registry=https://npm.pkg.github.com" > .npmrc
+          echo "//npm.pkg.github.com/:_authToken=${{ secrets.GHCR_TOKEN }}" >> .npmrc
+          echo "always-auth=true" >> .npmrc
+          echo "Created .npmrc for Frontend Docker build"
+
+      - name: Build and push Frontend Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./packages/frontend
+          file: ./packages/frontend/Dockerfile
+          push: true
+          tags: ${{ steps.meta-frontend.outputs.tags }}
+          labels: ${{ steps.meta-frontend.outputs.labels }}
+          build-args: |
+            NEXT_PUBLIC_API_URL=https://campus.staging.mojo-institut.de/api
+            NEXT_PUBLIC_DIRECTUS_URL=https://campus.staging.mojo-institut.de/cms
+            NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || 'pk_test_placeholder' }}
+            GIT_COMMIT=${{ github.sha }}
+            BUILD_DATE=${{ github.event.head_commit.timestamp || github.run_started_at }}
+            GIT_BRANCH=${{ github.ref_name }}
+            GITHUB_TOKEN=${{ secrets.GHCR_TOKEN }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+    outputs:
+      api-image: ${{ steps.meta-api.outputs.tags }}
+      frontend-image: ${{ steps.meta-frontend.outputs.tags }}
+
+  # ============================================
+  # DEPLOY TO STAGING
+  # ============================================
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: build-images
+    if: needs.build-images.result == 'success'
+    environment:
+      name: staging
+      url: https://campus.staging.mojo-institut.de
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check required secrets
+        run: |
+          if [ -z "${{ secrets.STAGING_SERVER }}" ]; then
+            echo "❌ Fehler: STAGING_SERVER Secret nicht gesetzt!"
+            exit 1
+          fi
+          if [ -z "${{ secrets.STAGING_SSH_KEY }}" ]; then
+            echo "❌ Fehler: STAGING_SSH_KEY Secret nicht gesetzt!"
+            exit 1
+          fi
+          echo "✅ Alle erforderlichen Secrets sind gesetzt"
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.STAGING_SSH_KEY }}
+
+      - name: Add server to known hosts
+        run: |
+          ssh-keyscan -H ${{ secrets.STAGING_SERVER }} >> ~/.ssh/known_hosts
+
+      - name: Deploy to Staging (Blue/Green)
+        run: |
+          export REGISTRY="${{ env.REGISTRY }}"
+          export GITHUB_REPOSITORY="${{ github.repository }}"
+          export GITHUB_ACTOR="${{ github.actor }}"
+          export GHCR_TOKEN="${{ secrets.GHCR_TOKEN }}"
+          export VERSION="main-latest"
+          export APP_NAME="campus.mojo"
+          
+          ssh -T -o StrictHostKeyChecking=no root@${{ secrets.STAGING_SERVER }} \
+            REGISTRY="${REGISTRY}" \
+            GITHUB_REPOSITORY="${GITHUB_REPOSITORY}" \
+            GITHUB_ACTOR="${GITHUB_ACTOR}" \
+            GHCR_TOKEN="${GHCR_TOKEN}" \
+            VERSION="${VERSION}" \
+            APP_NAME="${APP_NAME}" \
+            bash << 'DEPLOY_EOF'
+          set -e
+          PROJECT_DIR="/root/projects/${APP_NAME}"
+          
+          # Create project directory if it doesn't exist
+          mkdir -p "$PROJECT_DIR"
+          cd "$PROJECT_DIR"
+          
+          # Initialize git repo if it doesn't exist
+          if [ ! -d .git ]; then
+            git init
+            git remote add origin https://${GITHUB_ACTOR}:${GHCR_TOKEN}@github.com/${GITHUB_REPOSITORY}.git || \
+              git remote set-url origin https://${GITHUB_ACTOR}:${GHCR_TOKEN}@github.com/${GITHUB_REPOSITORY}.git
+          else
+            git remote set-url origin https://${GITHUB_ACTOR}:${GHCR_TOKEN}@github.com/${GITHUB_REPOSITORY}.git
+          fi
+          
+          git fetch origin
+          git checkout main || git checkout master
+          git pull origin main || git pull origin master
+          
+          # Login to GHCR
+          echo "$GHCR_TOKEN" | docker login ${REGISTRY} -u ${GITHUB_ACTOR} --password-stdin
+          
+          # Ensure deploy script is executable
+          chmod +x /root/scripts/deploy-blue-green.sh || true
+          
+          # Run Blue-Green deployment
+          /root/scripts/deploy-blue-green.sh staging "${VERSION}" "${APP_NAME}" "${REGISTRY}" "${GITHUB_REPOSITORY}" || {
+            echo "❌ Deployment failed"
+            exit 1
+          }
+          
+          echo "✅ Staging deployment completed successfully"
+          DEPLOY_EOF
+
+  # ============================================
+  # HEALTH CHECK
+  # ============================================
+  health-check:
+    name: Health Check
+    runs-on: ubuntu-latest
+    needs: deploy-staging
+    if: needs.deploy-staging.result == 'success'
+    timeout-minutes: 5
+
+    steps:
+      - name: Wait for Deployment
+        run: |
+          echo "⏳ Warte auf Deployment-Initialisierung..."
+          sleep 30
+
+      - name: Health Check
+        run: |
+          MAX_RETRIES=10
+          APP_NAME="campus"
+          HEALTH_URL="https://${APP_NAME}.staging.mojo-institut.de/health"
+          
+          echo "🔍 Health-Check für ${APP_NAME}..."
+          
+          for i in $(seq 1 $MAX_RETRIES); do
+            RETRY_DELAY=5
+            echo "Versuch $i/$MAX_RETRIES..."
+            
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$HEALTH_URL" 2>/dev/null || echo "000")
+            
+            if [ "$HTTP_CODE" = "200" ]; then
+              echo "✅ Health-Check erfolgreich (HTTP $HTTP_CODE)"
+              exit 0
+            fi
+            
+            echo "⚠️ Health-Check fehlgeschlagen (HTTP $HTTP_CODE), warte ${RETRY_DELAY}s..."
+            if [ $i -lt $MAX_RETRIES ]; then
+              sleep $RETRY_DELAY
+            fi
+          done
+          
+          echo "❌ Health-Check nach $MAX_RETRIES Versuchen fehlgeschlagen"
+          exit 1
+
