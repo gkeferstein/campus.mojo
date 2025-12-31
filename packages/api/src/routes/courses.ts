@@ -83,9 +83,17 @@ export async function coursesRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.get('/courses/:courseSlug', {
     preHandler: [authenticate],
     schema: {
-      params: z.object({
-        courseSlug: z.string().min(1).max(255),
-      }),
+      params: {
+        type: 'object',
+        required: ['courseSlug'],
+        properties: {
+          courseSlug: {
+            type: 'string',
+            minLength: 1,
+            maxLength: 255,
+          },
+        },
+      },
     },
   }, async (request, reply) => {
     const { courseSlug } = request.params as { courseSlug: string };
