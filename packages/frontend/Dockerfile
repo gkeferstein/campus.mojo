@@ -15,6 +15,9 @@ RUN if [ -n "$GITHUB_TOKEN" ]; then \
 # Copy frontend package.json first
 COPY package.json ./
 
+# Install git for potential fallback
+RUN apk add --no-cache git
+
 # Install dependencies from GitHub Packages
 # @gkeferstein/design is published to GitHub Packages
 RUN npm install --legacy-peer-deps 2>&1 | tee /tmp/npm-install.log || INSTALL_FAILED=1; \
@@ -23,9 +26,19 @@ RUN npm install --legacy-peer-deps 2>&1 | tee /tmp/npm-install.log || INSTALL_FA
       echo "=== npm install log ===" && \
       cat /tmp/npm-install.log && \
       echo "" && \
-      echo "⚠️ Attempting to install with public registry as fallback..." && \
-      sed -i 's|@gkeferstein:registry=https://npm.pkg.github.com||g' ~/.npmrc 2>/dev/null || true && \
-      npm install --legacy-peer-deps 2>&1 | tee /tmp/npm-install-fallback.log || true; \
+      echo "⚠️ Cloning design.mojo as fallback..." && \
+      if [ -n "$GITHUB_TOKEN" ]; then \
+        git clone --depth 1 https://${GITHUB_TOKEN}@github.com/gkeferstein/design.mojo.git /tmp/design.mojo || \
+        git clone --depth 1 https://github.com/gkeferstein/design.mojo.git /tmp/design.mojo; \
+      else \
+        git clone --depth 1 https://github.com/gkeferstein/design.mojo.git /tmp/design.mojo; \
+      fi && \
+      mkdir -p /app/design.mojo/packages && \
+      cp -r /tmp/design.mojo/packages/design /app/design.mojo/packages/ && \
+      sed -i 's|"@gkeferstein/design": "[^"]*"|"@gkeferstein/design": "file:../design.mojo/packages/design"|g' package.json && \
+      echo "✅ Updated package.json to use local design.mojo" && \
+      npm install --legacy-peer-deps 2>&1 | tee /tmp/npm-install-fallback.log || \
+        (echo "❌ Local installation also failed" && cat /tmp/npm-install-fallback.log && exit 1); \
     fi && \
     echo "✅ Verifying @gkeferstein/design installation:" && \
     if [ ! -d "node_modules/@gkeferstein/design" ]; then \
@@ -64,7 +77,8 @@ RUN if [ -n "$GITHUB_TOKEN" ]; then \
 COPY --from=deps /app/package.json ./package.json
 COPY --from=deps /app/node_modules ./node_modules
 
-# @gkeferstein/design is installed from GitHub Packages, no need to copy design.mojo
+# Copy design.mojo if it was used as fallback (optional, may not exist)
+COPY --from=deps /app/design.mojo* ../design.mojo/ 2>/dev/null || echo "ℹ️ design.mojo not found, package was installed from GitHub Packages"
 
 # Copy frontend source files
 COPY src ./src
