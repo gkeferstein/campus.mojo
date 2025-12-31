@@ -736,9 +736,18 @@ jobs:
           set -e
           PROJECT_DIR="/root/projects/campus.mojo"
           
-          cd "$PROJECT_DIR" || exit 1
+          # Create project directory if it doesn't exist
+          mkdir -p "$PROJECT_DIR"
+          cd "$PROJECT_DIR"
+          
+          # Initialize git repo if it doesn't exist
+          if [ ! -d .git ]; then
+            git init
+            git remote add origin https://github.com/gkeferstein/campus.mojo.git || git remote set-url origin https://github.com/gkeferstein/campus.mojo.git
+          fi
+          
           git fetch origin
-          git checkout $VERSION
+          git checkout $VERSION || (git fetch origin && git checkout $VERSION)
           
           echo "$GITHUB_TOKEN" | docker login ${REGISTRY} -u ${GITHUB_ACTOR} --password-stdin
           
