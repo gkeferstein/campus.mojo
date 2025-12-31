@@ -247,3 +247,4 @@ export async function quizRoutes(fastify: FastifyInstance): Promise<void> {
 
 
 
+
