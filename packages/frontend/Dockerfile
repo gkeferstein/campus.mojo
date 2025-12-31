@@ -5,15 +5,23 @@ FROM node:22-alpine AS deps
 WORKDIR /app
 
 # Configure npm for GitHub Packages
+# Use .npmrc from build context if available, otherwise use GITHUB_TOKEN
 ARG GITHUB_TOKEN
-RUN if [ -n "$GITHUB_TOKEN" ]; then \
+RUN if [ -f .npmrc ]; then \
+      cp .npmrc ~/.npmrc && \
+      echo "✅ Using .npmrc from build context"; \
+    elif [ -n "$GITHUB_TOKEN" ]; then \
       echo "@gkeferstein:registry=https://npm.pkg.github.com" > ~/.npmrc && \
       echo "//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}" >> ~/.npmrc && \
-      echo "always-auth=true" >> ~/.npmrc; \
+      echo "always-auth=true" >> ~/.npmrc && \
+      echo "✅ Created .npmrc from GITHUB_TOKEN"; \
+    else \
+      echo "⚠️ No .npmrc or GITHUB_TOKEN provided"; \
     fi
 
-# Copy frontend package.json first
+# Copy frontend package.json and .npmrc (if created in CI)
 COPY package.json ./
+COPY .npmrc* ./
 
 # Install git for potential fallback
 RUN apk add --no-cache git

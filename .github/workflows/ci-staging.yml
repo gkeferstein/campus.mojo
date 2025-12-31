@@ -151,6 +151,22 @@ jobs:
             type=raw,value=main-latest
             type=raw,value=${{ github.sha }}
 
+      - name: Create .npmrc for Frontend Docker Build
+        env:
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        working-directory: ./packages/frontend
+        run: |
+          if [ -n "$GHCR_TOKEN" ] && [ "$GHCR_TOKEN" != "" ]; then
+            NPM_TOKEN="$GHCR_TOKEN"
+          else
+            NPM_TOKEN="$GITHUB_TOKEN"
+          fi
+          echo "@gkeferstein:registry=https://npm.pkg.github.com" > .npmrc
+          echo "//npm.pkg.github.com/:_authToken=${NPM_TOKEN}" >> .npmrc
+          echo "always-auth=true" >> .npmrc
+          echo "✅ Created .npmrc for Frontend Docker build"
+
       - name: Build and push Frontend Docker image
         uses: docker/build-push-action@v5
         with:
