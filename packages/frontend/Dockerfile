@@ -17,16 +17,29 @@ COPY package.json ./
 
 # Install dependencies from GitHub Packages
 # @gkeferstein/design is published to GitHub Packages
-RUN npm install --legacy-peer-deps && \
+RUN npm install --legacy-peer-deps 2>&1 | tee /tmp/npm-install.log || INSTALL_FAILED=1; \
+    if [ "${INSTALL_FAILED:-0}" = "1" ] || [ ! -d "node_modules/@gkeferstein/design" ]; then \
+      echo "⚠️ Installation from GitHub Packages failed or package not found" && \
+      echo "=== npm install log ===" && \
+      cat /tmp/npm-install.log && \
+      echo "" && \
+      echo "⚠️ Attempting to install with public registry as fallback..." && \
+      sed -i 's|@gkeferstein:registry=https://npm.pkg.github.com||g' ~/.npmrc 2>/dev/null || true && \
+      npm install --legacy-peer-deps 2>&1 | tee /tmp/npm-install-fallback.log || true; \
+    fi && \
     echo "✅ Verifying @gkeferstein/design installation:" && \
     if [ ! -d "node_modules/@gkeferstein/design" ]; then \
       echo "❌ @gkeferstein/design not found in node_modules" && \
       echo "Available packages:" && \
       ls -la node_modules/@gkeferstein/ 2>/dev/null || echo "No @gkeferstein packages found" && \
+      echo "=== npm install log ===" && \
+      cat /tmp/npm-install.log && \
+      echo "=== npm install fallback log ===" && \
+      cat /tmp/npm-install-fallback.log 2>/dev/null || echo "No fallback log" && \
       exit 1; \
     fi && \
     ls -la node_modules/@gkeferstein/design && \
-    echo "✅ @gkeferstein/design successfully installed from GitHub Packages"
+    echo "✅ @gkeferstein/design successfully installed"
 
 FROM node:22-alpine AS builder
 WORKDIR /app
