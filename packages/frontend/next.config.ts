@@ -11,6 +11,10 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
+        hostname: "campus.staging.mojo-institut.de",
+      },
+      {
+        protocol: "https",
         hostname: "dev.campus.mojo-institut.de",
       },
       {
