@@ -1,23 +1,47 @@
 # campus.mojo - Cursor Rules
 
-> **Globale Standards:** `/root/projects/CODING_STANDARDS.md`
+## ⚠️ PFLICHT: Platform Standards
 
-## Projekt-Info
+Dieses Projekt MUSS sich an die Standards in `platform.mojo` halten:
 
-- **Typ:** Learning Management System (LMS)
-- **Domain:** campus.mojo-institut.de
-- **Stack:** Next.js + Fastify + Prisma
+- **Ökosystem:** /root/projects/platform.mojo/docs/MOJO_ECOSYSTEM.md
+- **Coding Standards:** /root/projects/platform.mojo/docs/CODING_STANDARDS.md
+- **Staging Konvention:** /root/projects/platform.mojo/docs/STAGING_SERVER_CONVENTION.md
+- **Lokale Entwicklung:** /root/projects/platform.mojo/docs/LOCAL_DEVELOPMENT.md
+- **Brand Guidelines:** /root/projects/platform.mojo/docs/brand/
 
-## Architektur
+## URLs
 
-```
-packages/
-├── web/        # Frontend (Next.js)
-└── api/        # Backend API (Fastify)
-```
+- **Staging:** https://campus.staging.mojo-institut.de
+- **Production:** https://campus.mojo-institut.de
 
-## Wichtige Patterns
+## Code-Prinzipien
 
-1. **Multitenancy:** `@mojo/tenant` Middleware (Creator können eigene Kurse hosten)
-2. **Auth:** Clerk JWT
-3. **Entitlements:** User-Berechtigungen für Kurse via `EntitlementGate`
+- TypeScript ES6+ mit striktem Typing
+- DRY - Keine Code-Duplikation
+- Einfachheit vor Komplexität
+- Health Check Endpoint ist PFLICHT (`/health`)
+
+## Design System
+
+- `@gkeferstein/design` Package verwenden
+- MOJO-Terminologie beachten (siehe MOJO_GLOSSARY.md)
+- Voice & Tone Guidelines befolgen
+
+## CI/CD
+
+- Push zu `main` → Staging Deployment
+- Release Tag `v*.*.*` → Production Deployment
+- Feature Branches → CI ohne Deployment (ci-pr.yml)
+
+## GitHub Secrets (PFLICHT!)
+
+- `STAGING_SERVER` - Staging Server
+- `STAGING_SSH_KEY` - SSH Key für Staging
+- `PRODUCTION_SERVER` - Production Server
+- `PRODUCTION_SSH_KEY` - SSH Key für Production
+- `GHCR_TOKEN` - GitHub Container Registry
+
+## Referenzen
+
+Repository: https://github.com/gkeferstein/platform.mojo
