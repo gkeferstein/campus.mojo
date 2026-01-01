@@ -107,7 +107,7 @@ docker network create mojo-network || true
 ### 3. Services starten
 
 ```bash
-# Development-Modus (mit Port-Expose)
+# Optional: Lokales Development (mit Host-Port-Expose, ohne Traefik)
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
 
 # Logs beobachten
@@ -140,6 +140,8 @@ node scripts/create-test-user.js
 - **API:** http://localhost:3001
 - **API Health:** http://localhost:3001/health
 - **Directus Admin:** http://localhost:8055/admin
+
+> Hinweis: Staging/Production laufen **serverseitig über Traefik-Routing** (kein Port-Expose erforderlich). Siehe `docs/PORT.md`.
 
 ---
 

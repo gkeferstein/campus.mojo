@@ -1,6 +1,7 @@
-# Ports & Routing (Traefik / Local Dev)
+# Routing (Traefik) & interne Ports
 
-Dieses Dokument beschreibt die Port-Belegung der Services und das Routing (Traefik) in Staging/Production sowie das lokale Dev-Setup mit port-expose.
+Dieses Dokument beschreibt **das Traefik-Routing** in Staging/Production (Default) sowie die **internen Service-Ports** innerhalb des Docker-Netzwerks.
+Port-Mappings auf den Host (`ports:` in Compose) sind **nur für lokales Development** nötig/gedacht.
 
 ## Services & interne Ports
 
@@ -13,7 +14,7 @@ Dieses Dokument beschreibt die Port-Belegung der Services und das Routing (Traef
 
 ## Traefik Routing (Staging/Production)
 
-Die Deployments sind für Traefik ausgelegt (Labels in `docker-compose*.yml`).
+Die Deployments sind für Traefik ausgelegt (Labels in `docker-compose*.yml`). In Staging/Production werden Services **im Regelfall nicht direkt via Host-Ports exponiert**, sondern ausschließlich über Traefik geroutet.
 
 ### Production (`campus.mojo-institut.de`)
 
@@ -32,9 +33,9 @@ Gleiches Routing wie Production, zusätzlich typischerweise mit Basic-Auth Middl
 
 Relevante Datei: `docker-compose.staging.yml`.
 
-## Lokales Development (Ports exponieren)
+## Optional: Lokales Development (Ports exponieren)
 
-Für lokales Dev ohne externen Traefik kannst du Ports direkt auf `localhost` mappen (siehe `docker-compose.dev.yml`):
+Für lokales Dev **ohne** externen Traefik kannst du Ports direkt auf `localhost` mappen (siehe `docker-compose.dev.yml`). Das ist **nicht** Teil des Server-Deployments.
 
 | Local URL | Service |
 |----------|---------|
