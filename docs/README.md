@@ -9,7 +9,9 @@
 | [API.md](API.md) | Vollständige REST API-Referenz mit allen Endpoints |
 | [CONTENT-BLOCKS.md](CONTENT-BLOCKS.md) | Content-Block-Typen für Lektionen (11 Typen) |
 | [INTERACTIVE-TOOLS.md](INTERACTIVE-TOOLS.md) | Interactive Tool-System und Entwickler-Guide |
+| [ENV-SETUP.md](ENV-SETUP.md) | Environment-Variablen (Clerk, DB, Directus) |
 | [PORT.md](PORT.md) | Port-Konfiguration und Traefik-Routing |
+| [TOOLS-SCHEMA.md](TOOLS-SCHEMA.md) | Directus Schema für Tool-Suites und Tools |
 
 ## Kurs-Inhalte
 
@@ -32,14 +34,10 @@ docs/
 ├── API.md                 # REST API-Referenz
 ├── CONTENT-BLOCKS.md      # Content-Block-Typen
 ├── INTERACTIVE-TOOLS.md   # Tool-System
+├── ENV-SETUP.md           # Environment Setup
 ├── PORT.md                # Port-Konfiguration
+├── TOOLS-SCHEMA.md        # Directus Schema (Tools)
 └── content/
     └── MOJO Startrampe V2.0.md  # Kurs-Inhalte
 ```
-
-
-
-
-
-
 
