@@ -69,7 +69,9 @@ Eine moderne headless LMS-Plattform mit Directus CMS, Fastify API und Next.js Fr
 | [docs/API.md](docs/API.md) | Vollständige API-Referenz |
 | [docs/CONTENT-BLOCKS.md](docs/CONTENT-BLOCKS.md) | Content-Block-Typen für Lektionen |
 | [docs/INTERACTIVE-TOOLS.md](docs/INTERACTIVE-TOOLS.md) | Tool-System und VO2Max Calculator |
-| (entfällt) | Port-Dokumentation ist nicht nötig – Traefik übernimmt das Routing |
+| [docs/ENV-SETUP.md](docs/ENV-SETUP.md) | Environment Setup (Clerk, DB, Directus) |
+| [docs/PORT.md](docs/PORT.md) | Port-Konfiguration und Routing |
+| [docs/TOOLS-SCHEMA.md](docs/TOOLS-SCHEMA.md) | Directus Schema für Tool-Suites und Tools |
 
 ---
 
@@ -84,7 +86,9 @@ Eine moderne headless LMS-Plattform mit Directus CMS, Fastify API und Next.js Fr
 ### 1. Repository klonen und konfigurieren
 
 ```bash
-cd /root/projects/campus.mojo
+# Beispiel-Pfad (frei wählbar)
+mkdir -p ~/projects/campus.mojo
+cd ~/projects/campus.mojo
 
 # Environment-Variablen kopieren
 cp .env.example .env
@@ -96,15 +100,15 @@ nano .env
 ### 2. Docker-Netzwerk erstellen
 
 ```bash
-docker network create mojo-campus-network
-docker network connect mojo-campus-network mojo-traefik
+# Das Compose-Setup nutzt ein externes Docker-Netzwerk (siehe docker-compose*.yml)
+docker network create mojo-network || true
 ```
 
 ### 3. Services starten
 
 ```bash
-# Development-Modus (mit Port-Expose)
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+# Optional: Lokales Development (mit Host-Port-Expose, ohne Traefik)
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
 
 # Logs beobachten
 docker compose logs -f
@@ -136,6 +140,8 @@ node scripts/create-test-user.js
 - **API:** http://localhost:3001
 - **API Health:** http://localhost:3001/health
 - **Directus Admin:** http://localhost:8055/admin
+
+> Hinweis: Staging/Production laufen **serverseitig über Traefik-Routing** (kein Port-Expose erforderlich). Siehe `docs/PORT.md`.
 
 ---
 
@@ -371,8 +377,7 @@ git clone <repo-url> .
 cp .env.example .env
 nano .env  # Secrets eintragen
 
-docker network create mojo-campus-network
-docker network connect mojo-campus-network mojo-traefik
+docker network create mojo-network || true
 
 docker compose up -d
 docker compose logs -f
@@ -396,7 +401,7 @@ tar -czf uploads_$(date +%Y%m%d).tar.gz directus/uploads/
 - HTTPS via Traefik mit Let's Encrypt
 - JWT-Tokens für API-Authentifizierung (Clerk SSO)
 - Webhook-Signaturprüfung für externe Events
-- Rate-Limiting auf API-Ebene (100 req/min)
+- Rate-Limiting auf API-Ebene (Default: 50/min unauth, 200/min auth)
 
 ---
 
@@ -416,10 +421,14 @@ tar -czf uploads_$(date +%Y%m%d).tar.gz directus/uploads/
 | `JWT_SECRET` | Secret für JWT-Signierung |
 | `JWT_EXPIRES_IN` | Token-Ablaufzeit (default: 7d) |
 | `WEBHOOK_SECRET` | Secret für Webhook-Validierung |
+| `CORS_ORIGIN` | Erlaubte Origins (Production Pflicht) |
+| `LOG_LEVEL` | Log-Level (z.B. `info`, `debug`) |
+| `SERVICE_NAME` | Service-Name für Logs |
 | `CLERK_SECRET_KEY` | Clerk Secret Key |
 | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk Publishable Key |
+| `NEXT_PUBLIC_API_URL` | Public API Base URL fürs Frontend |
+| `NEXT_PUBLIC_DIRECTUS_URL` | Public Directus URL fürs Frontend |
 
 ---
 
 **Zuletzt aktualisiert:** 2024-12-29
-# Test

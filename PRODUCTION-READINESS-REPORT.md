@@ -1,7 +1,10 @@
-# Production-Readiness Report: campus.mojo
+# Production-Readiness Report: campus.mojo (ARCHIVIERT)
 
 **Datum:** 2025-01-XX  
-**Status:** ⚠️ **NICHT PRODUCTION-READY** - Kritische Probleme gefunden
+**Status:** ⚠️ **ARCHIVIERT / HISTORISCH**
+
+> Dieses Dokument ist ein **historischer Befund** und beschreibt einen Zustand, in dem noch kritische Probleme offen waren.
+> Der aktuelle Stand ist im Dokument **`PRODUCTION-READINESS-CHECK.md`** festgehalten.
 
 ---
 
