@@ -14,7 +14,8 @@ import type { Tenant, MojoUser } from '@gkeferstein/design';
 import { useMemo, useEffect, useState, useCallback } from 'react';
 
 // Payments.mojo API URL for fetching app entitlements
-const PAYMENTS_API_URL = process.env.NEXT_PUBLIC_PAYMENTS_API_URL || 'https://payments.mojo-institut.de/api/v1';
+// Platform-Konvention: APIs liegen unter /api (nicht /api/v1)
+const PAYMENTS_API_URL = process.env.NEXT_PUBLIC_PAYMENTS_API_URL || 'https://payments.mojo-institut.de/api';
 
 interface AppEntitlementsResponse {
   entitlements: string[];

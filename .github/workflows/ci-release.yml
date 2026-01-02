@@ -117,21 +117,15 @@ jobs:
 
       - name: TypeScript Check (Strict)
         working-directory: ${{ matrix.package.path }}
-        run: |
-          npm run typecheck || npx tsc --noEmit --strict || echo "⚠️ TypeScript check skipped"
-        continue-on-error: true
+        run: npm run typecheck
 
       - name: ESLint
         working-directory: ${{ matrix.package.path }}
-        run: |
-          npm run lint || echo "⚠️ Linting skipped"
-        continue-on-error: true
+        run: npm run lint
 
       - name: Run Tests
         working-directory: ${{ matrix.package.path }}
-        run: |
-          npm test || echo "⚠️ Tests skipped"
-        continue-on-error: true
+        run: npm run test --if-present
 
   # ============================================
   # VERIFY IMAGES EXIST (from Staging)
@@ -152,30 +146,32 @@ jobs:
       - name: Verify API Image Exists
         run: |
           VERSION="${{ needs.prepare-release.outputs.version }}"
-          IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-api:${VERSION}"
+          COMMIT_SHA="${{ github.sha }}"
+          IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-api:${COMMIT_SHA}"
           
-          echo "🔍 Prüfe ob Image existiert: ${IMAGE}"
+          echo "🔍 Prüfe ob Image existiert (build once in staging): ${IMAGE}"
           
           if docker manifest inspect "${IMAGE}" >/dev/null 2>&1; then
             echo "✅ API Image gefunden: ${IMAGE}"
           else
             echo "❌ API Image nicht gefunden: ${IMAGE}"
-            echo "⚠️ Hinweis: Images müssen zuerst in Staging gebaut werden!"
+            echo "⚠️ Hinweis: Commit-SHA Images müssen zuerst in Staging gebaut werden (ci-staging.yml)."
             exit 1
           fi
 
       - name: Verify Frontend Image Exists
         run: |
           VERSION="${{ needs.prepare-release.outputs.version }}"
-          IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:${VERSION}"
+          COMMIT_SHA="${{ github.sha }}"
+          IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:${COMMIT_SHA}"
           
-          echo "🔍 Prüfe ob Image existiert: ${IMAGE}"
+          echo "🔍 Prüfe ob Image existiert (build once in staging): ${IMAGE}"
           
           if docker manifest inspect "${IMAGE}" >/dev/null 2>&1; then
             echo "✅ Frontend Image gefunden: ${IMAGE}"
           else
             echo "❌ Frontend Image nicht gefunden: ${IMAGE}"
-            echo "⚠️ Hinweis: Images müssen zuerst in Staging gebaut werden!"
+            echo "⚠️ Hinweis: Commit-SHA Images müssen zuerst in Staging gebaut werden (ci-staging.yml)."
             exit 1
           fi
 
@@ -227,6 +223,7 @@ jobs:
           export GITHUB_ACTOR="${{ github.actor }}"
           export GHCR_TOKEN="${{ secrets.GHCR_TOKEN }}"
           export VERSION="${{ needs.prepare-release.outputs.version }}"
+          export DEPLOY_IMAGE_TAG="${{ github.sha }}"
           export APP_NAME="campus.mojo"
           
           ssh -T -o StrictHostKeyChecking=no root@${{ secrets.PRODUCTION_SERVER }} \
@@ -235,9 +232,10 @@ jobs:
             GITHUB_ACTOR="${GITHUB_ACTOR}" \
             GHCR_TOKEN="${GHCR_TOKEN}" \
             VERSION="${VERSION}" \
+            DEPLOY_IMAGE_TAG="${DEPLOY_IMAGE_TAG}" \
             APP_NAME="${APP_NAME}" \
             bash << 'DEPLOY_EOF'
-          set -e
+          set -euo pipefail
           PROJECT_DIR="/root/projects/${APP_NAME}"
           
           # Create project directory if it doesn't exist
@@ -258,17 +256,14 @@ jobs:
           
           # Login to GHCR
           echo "$GHCR_TOKEN" | docker login ${REGISTRY} -u ${GITHUB_ACTOR} --password-stdin
-          
-          # Ensure deploy script is executable
-          chmod +x /root/scripts/deploy-blue-green.sh || true
-          
-          # Run Blue-Green deployment
-          # WICHTIG: Production verwendet gleiche Images wie Staging (build once, deploy many)
-          /root/scripts/deploy-blue-green.sh production "${VERSION}" "${APP_NAME}" "${REGISTRY}" "${GITHUB_REPOSITORY}" || {
-            echo "❌ Deployment failed - rollback triggered"
-            exit 1
-          }
-          
+
+          echo "🚀 Deploying (compose rollout) to production..."
+          # WICHTIG: Production verwendet exakt die gleichen Images wie Staging (commit SHA Tag)
+          export VERSION="${DEPLOY_IMAGE_TAG}"
+
+          docker compose -f docker-compose.production.yml pull
+          docker compose -f docker-compose.production.yml up -d --remove-orphans
+
           echo "✅ Production deployment completed successfully"
           DEPLOY_EOF
 
@@ -366,8 +361,8 @@ jobs:
           echo "$CHANGELOG_SECTION" >> $GITHUB_OUTPUT
           echo "" >> $GITHUB_OUTPUT
           echo "## Docker Images" >> $GITHUB_OUTPUT
-          echo "- API: \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-api:${{ needs.prepare-release.outputs.version }}\`" >> $GITHUB_OUTPUT
-          echo "- Frontend: \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:${{ needs.prepare-release.outputs.version }}\`" >> $GITHUB_OUTPUT
+          echo "- API: \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-api:${{ github.sha }}\`" >> $GITHUB_OUTPUT
+          echo "- Frontend: \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:${{ github.sha }}\`" >> $GITHUB_OUTPUT
           echo "" >> $GITHUB_OUTPUT
           echo "## Deployment" >> $GITHUB_OUTPUT
           echo "✅ Deployed to Production: https://campus.mojo-institut.de" >> $GITHUB_OUTPUT

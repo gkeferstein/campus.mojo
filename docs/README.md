@@ -9,7 +9,7 @@
 | [API.md](API.md) | Vollständige REST API-Referenz mit allen Endpoints |
 | [CONTENT-BLOCKS.md](CONTENT-BLOCKS.md) | Content-Block-Typen für Lektionen (11 Typen) |
 | [INTERACTIVE-TOOLS.md](INTERACTIVE-TOOLS.md) | Interactive Tool-System und Entwickler-Guide |
-| [PORT.md](PORT.md) | Port-Konfiguration und Traefik-Routing |
+| (entfällt) | Port-Dokumentation ist nicht nötig – Traefik übernimmt das Routing |
 
 ## Kurs-Inhalte
 
@@ -32,7 +32,6 @@ docs/
 ├── API.md                 # REST API-Referenz
 ├── CONTENT-BLOCKS.md      # Content-Block-Typen
 ├── INTERACTIVE-TOOLS.md   # Tool-System
-├── PORT.md                # Port-Konfiguration
 └── content/
     └── MOJO Startrampe V2.0.md  # Kurs-Inhalte
 ```

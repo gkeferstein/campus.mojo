@@ -12,7 +12,7 @@ Dieses Projekt verwendet die **einheitlichen MOJO Pipeline-Standards**:
 **Ziele:**
 - ✅ Code Quality Checks
 - ✅ Docker Images bauen und taggen (`sha-{commit}`, `main-latest`)
-- ✅ Blue/Green Deployment auf Staging
+- ✅ Deployment auf Staging (Docker Compose Rollout)
 - ✅ Health Check Validation
 
 **Pipeline-Übersicht:**
@@ -32,7 +32,7 @@ Dieses Projekt verwendet die **einheitlichen MOJO Pipeline-Standards**:
 ┌──────────────┐
 │ Deploy       │
 │ Staging      │
-│ (Blue/Green) │
+│ (Compose)    │
 └──────┬───────┘
        │
        ▼
@@ -55,7 +55,7 @@ Dieses Projekt verwendet die **einheitlichen MOJO Pipeline-Standards**:
 **Ziele:**
 - ✅ Strict Code Quality Checks
 - ✅ Image-Verifikation (pullt exakt gleiche Images wie Staging)
-- ✅ Blue/Green Deployment auf Production
+- ✅ Deployment auf Production (Docker Compose Rollout)
 - ✅ Health Check Validation
 - ✅ GitHub Release erstellen
 
@@ -73,7 +73,7 @@ Dieses Projekt verwendet die **einheitlichen MOJO Pipeline-Standards**:
 ┌──────────────┐
 │ Deploy       │
 │ Production   │
-│ (Blue/Green) │
+│ (Compose)    │
 └──────┬───────┘
        │
        ▼
@@ -133,7 +133,7 @@ Beide Umgebungen (Staging + Production) verwenden **Blue/Green Deployment**:
 5. Stop Blue Environment
 6. Rollback bei Fehler
 
-**Script:** `/root/scripts/deploy-blue-green.sh`
+**Hinweis:** Deployment-Logik ist im Workflow versioniert (keine Server-Abhängigkeit auf `/root/scripts/*`).
 
 ## Docker Compose Files
 
@@ -150,8 +150,8 @@ git push origin v1.0.0
 ```
 
 Die Pipeline startet automatisch und:
-- Verifiziert, dass Images mit diesem Tag existieren (aus Staging)
-- Deployed zu Production (Blue/Green)
+- Verifiziert, dass Images für den Commit-SHA existieren (aus Staging)
+- Deployed zu Production (Docker Compose Rollout)
 - Führt Health Checks durch
 - Erstellt GitHub Release
 
@@ -207,4 +207,3 @@ Die Pipeline startet automatisch und:
 
 - **Staging Server Konvention:** `/root/projects/STAGING_SERVER_CONVENTION.md`
 - **Coding Standards:** `/root/projects/CODING_STANDARDS.md`
-- **Deploy Script:** `/root/scripts/deploy-blue-green.sh`
