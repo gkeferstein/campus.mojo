@@ -27,6 +27,20 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
     NEXT_PUBLIC_DIRECTUS_URL: process.env.NEXT_PUBLIC_DIRECTUS_URL,
   },
+  rewrites() {
+    // Proxy API requests to the backend API server in development
+    // In production, API runs behind Traefik on same domain
+    if (process.env.NODE_ENV === 'development') {
+      return [
+        {
+          source: '/api/:path*',
+          destination: 'http://localhost:3003/:path*',
+        },
+      ];
+    }
+    
+    return [];
+  },
   webpack: (config) => {
     // Ensure only one instance of next-themes is used
     // This fixes the issue where the design system has its own copy

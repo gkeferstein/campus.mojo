@@ -1,0 +1,36 @@
+# Docker Compose - Local Development Override
+# 
+# Überschreibt Ports für lokale Entwicklung
+# Frontend: 3002, API: 3003, Directus: 8055
+# 
+# Verwendung: docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+
+services:
+  # LMS API (Fastify) - Port 3003
+  api:
+    ports:
+      - "3003:3001"
+    # Traefik-Labels werden für lokale Entwicklung nicht benötigt
+
+  # Next.js Frontend - Port 3002
+  frontend:
+    ports:
+      - "3002:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3003}
+      NEXT_PUBLIC_DIRECTUS_URL: ${NEXT_PUBLIC_DIRECTUS_URL:-http://localhost:8055}
+    # Traefik-Labels werden für lokale Entwicklung nicht benötigt
+
+  # Directus CMS - Port 8055
+  directus:
+    ports:
+      - "8055:8055"
+    environment:
+      PUBLIC_URL: ${DIRECTUS_PUBLIC_URL:-http://localhost:8055}
+    # Traefik-Labels werden für lokale Entwicklung nicht benötigt
+
+  # PostgreSQL Database - Port 5433 (optional, falls du von außen zugreifen willst)
+  db:
+    ports:
+      - "5433:5432"  # 5433 lokal, um Konflikte zu vermeiden
+

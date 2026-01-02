@@ -37,8 +37,14 @@ const allowedOrigins = process.env.CORS_ORIGIN?.split(',').filter(Boolean) || []
 if (process.env.NODE_ENV === 'production' && allowedOrigins.length === 0) {
   throw new Error('CORS_ORIGIN must be set in production environment');
 }
+
+// In development, allow all localhost origins
+const corsOrigin = process.env.NODE_ENV === 'development' 
+  ? true  // Allow all origins in development
+  : allowedOrigins.length > 0 ? allowedOrigins : false;
+
 await fastify.register(cors, {
-  origin: allowedOrigins.length > 0 ? allowedOrigins : false,
+  origin: corsOrigin,
   credentials: true,
 });
 

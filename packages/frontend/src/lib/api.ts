@@ -7,12 +7,21 @@ class ApiError extends Error {
 
 // Get API URL dynamically - use relative URL on client (works for both dev and prod)
 function getApiUrl(): string {
+  // In development, use the full API URL from env
+  // In production, use relative URL which works with Next.js rewrites
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+  
   if (typeof window !== 'undefined') {
-    // Client-side: use relative URL (same origin)
+    // Client-side: use full URL if set and in development, otherwise relative
+    if (apiUrl && process.env.NODE_ENV === 'development') {
+      return apiUrl;
+    }
+    // Use relative URL (works with Next.js rewrites)
     return '/api';
   }
-  // Server-side: use env variable
-  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+  
+  // Server-side: use env variable or default
+  return apiUrl || 'http://localhost:3003';
 }
 
 async function request<T>(

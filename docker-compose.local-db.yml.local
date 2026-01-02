@@ -1,0 +1,30 @@
+# Docker Compose - Nur Datenbank für lokale Entwicklung
+# 
+# Startet nur PostgreSQL für lokale Entwicklung
+# API und Frontend laufen lokal mit Hot Reload
+
+services:
+  # PostgreSQL Database - Port 5433
+  db:
+    image: postgres:16-alpine
+    container_name: campus-db-local
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-campus}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-campus_lms}
+    volumes:
+      - campus-db-data-local:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "5434:5432"  # Port 5434 lokal, um Konflikte zu vermeiden
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-campus}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  campus-db-data-local:
+    name: campus-db-data-local
+

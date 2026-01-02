@@ -60,3 +60,6 @@ coverage/
 
 
 
+packages/api/.npmrc
+packages/frontend/.npmrc
+.npmrc
