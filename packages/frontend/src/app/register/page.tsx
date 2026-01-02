@@ -3,8 +3,18 @@
 import { SignUp } from "@clerk/nextjs";
 import { motion } from "framer-motion";
 import { GraduationCap } from "lucide-react";
+import { useMemo } from "react";
+import { useSearchParams } from "next/navigation";
 
 export default function RegisterPage() {
+  const searchParams = useSearchParams();
+  const signInUrl = useMemo(() => {
+    const redirectUrl = searchParams.get("redirect_url") ?? searchParams.get("redirectUrl");
+    return redirectUrl
+      ? `/login?redirect_url=${encodeURIComponent(redirectUrl)}`
+      : "/login";
+  }, [searchParams]);
+
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
       <motion.div
@@ -32,8 +42,7 @@ export default function RegisterPage() {
           }}
           routing="path"
           path="/register"
-          signInUrl="/login"
-          forceRedirectUrl="/dashboard"
+          signInUrl={signInUrl}
         />
       </motion.div>
     </div>
