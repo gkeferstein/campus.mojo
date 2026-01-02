@@ -338,7 +338,7 @@ export function VO2MaxCalculator({ lessonId, courseId }: Props) {
       <div className="bg-white dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700 p-5 space-y-5">
         <div className="flex items-center justify-between">
           <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-            2) Upgrade Planner (12 Wochen)
+            2) Level-Planer (12 Wochen)
           </span>
         </div>
 

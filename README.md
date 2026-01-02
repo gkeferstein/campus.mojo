@@ -69,7 +69,7 @@ Eine moderne headless LMS-Plattform mit Directus CMS, Fastify API und Next.js Fr
 | [docs/API.md](docs/API.md) | Vollständige API-Referenz |
 | [docs/CONTENT-BLOCKS.md](docs/CONTENT-BLOCKS.md) | Content-Block-Typen für Lektionen |
 | [docs/INTERACTIVE-TOOLS.md](docs/INTERACTIVE-TOOLS.md) | Tool-System und VO2Max Calculator |
-| [docs/PORT.md](docs/PORT.md) | Port-Konfiguration und Routing |
+| (entfällt) | Port-Dokumentation ist nicht nötig – Traefik übernimmt das Routing |
 
 ---
 

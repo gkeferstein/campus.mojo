@@ -11,14 +11,20 @@ on:
   pull_request:
     branches:
       - main
+  workflow_dispatch: {}
 
 jobs:
-  # ============================================
-  # Lint, Type Check, Test, Build
-  # ============================================
   validate:
-    name: Validate Code
+    name: Validate Code (${{ matrix.package.name }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        package:
+          - name: api
+            path: packages/api
+          - name: frontend
+            path: packages/frontend
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -26,30 +32,42 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
+          cache-dependency-path: ${{ matrix.package.path }}/package-lock.json
 
       - name: Configure npm for GitHub Packages
+        env:
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          if [ -n "$GHCR_TOKEN" ] && [ "$GHCR_TOKEN" != "" ]; then
+            NPM_TOKEN="$GHCR_TOKEN"
+          else
+            NPM_TOKEN="$GITHUB_TOKEN"
+          fi
           echo "@gkeferstein:registry=https://npm.pkg.github.com" > ~/.npmrc
-          echo "//npm.pkg.github.com/:_authToken=${{ secrets.GHCR_TOKEN }}" >> ~/.npmrc
+          echo "//npm.pkg.github.com/:_authToken=${NPM_TOKEN}" >> ~/.npmrc
+          echo "always-auth=true" >> ~/.npmrc
 
       - name: Install dependencies
+        working-directory: ${{ matrix.package.path }}
         run: npm ci
 
       - name: Run linting
+        working-directory: ${{ matrix.package.path }}
         run: npm run lint
-        continue-on-error: false
 
       - name: Run type check
+        working-directory: ${{ matrix.package.path }}
         run: npm run typecheck
-        continue-on-error: false
 
       - name: Run tests
-        run: npm test
-        continue-on-error: false
+        working-directory: ${{ matrix.package.path }}
+        run: npm run test --if-present
 
       - name: Build
+        working-directory: ${{ matrix.package.path }}
         run: npm run build
 
       - name: Summary
@@ -61,7 +79,7 @@ jobs:
           echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
           echo "| Lint | ✅ |" >> $GITHUB_STEP_SUMMARY
           echo "| Type Check | ✅ |" >> $GITHUB_STEP_SUMMARY
-          echo "| Tests | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| Tests | ✅ (if present) |" >> $GITHUB_STEP_SUMMARY
           echo "| Build | ✅ |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Ready to merge to \`main\` for Staging deployment." >> $GITHUB_STEP_SUMMARY

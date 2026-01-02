@@ -16,6 +16,7 @@ on:
       - 'LICENSE'
       - 'docs/**'
       - 'scripts/**'
+  workflow_dispatch: {}
 
 env:
   REGISTRY: ghcr.io
@@ -78,15 +79,11 @@ jobs:
 
       - name: TypeScript Check
         working-directory: ${{ matrix.package.path }}
-        run: |
-          npm run typecheck || npx tsc --noEmit --strict || echo "⚠️ TypeScript check skipped"
-        continue-on-error: true
+        run: npm run typecheck
 
       - name: ESLint
         working-directory: ${{ matrix.package.path }}
-        run: |
-          npm run lint || echo "⚠️ Linting skipped"
-        continue-on-error: true
+        run: npm run lint
 
   # ============================================
   # BUILD DOCKER IMAGES
@@ -245,7 +242,7 @@ jobs:
             VERSION="${VERSION}" \
             APP_NAME="${APP_NAME}" \
             bash << 'DEPLOY_EOF'
-          set -e
+          set -euo pipefail
           PROJECT_DIR="/root/projects/${APP_NAME}"
           
           # Create project directory if it doesn't exist
@@ -267,16 +264,13 @@ jobs:
           
           # Login to GHCR
           echo "$GHCR_TOKEN" | docker login ${REGISTRY} -u ${GITHUB_ACTOR} --password-stdin
-          
-          # Ensure deploy script is executable
-          chmod +x /root/scripts/deploy-blue-green.sh || true
-          
-          # Run Blue-Green deployment
-          /root/scripts/deploy-blue-green.sh staging "${VERSION}" "${APP_NAME}" "${REGISTRY}" "${GITHUB_REPOSITORY}" || {
-            echo "❌ Deployment failed"
-            exit 1
-          }
-          
+
+          echo "🚀 Deploying (compose rollout) to staging..."
+          export VERSION="${VERSION}"
+
+          docker compose -f docker-compose.staging.yml pull
+          docker compose -f docker-compose.staging.yml up -d --remove-orphans
+
           echo "✅ Staging deployment completed successfully"
           DEPLOY_EOF
 
@@ -317,7 +311,8 @@ jobs:
               echo "Response: $RESPONSE"
             fi
             
-            if [ "$HTTP_CODE" = "200" ]; then
+            # Staging is protected by Basic Auth. 401 means Traefik is up and the app is reachable.
+            if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "401" ]; then
               echo "✅ Health-Check erfolgreich (HTTP $HTTP_CODE)"
               exit 0
             fi

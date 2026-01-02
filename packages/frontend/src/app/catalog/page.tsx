@@ -3,7 +3,7 @@
 /**
  * Course Catalog Page
  * Sales-oriented view of the MOJO graduation system
- * Shows what's available to purchase and what's already unlocked
+ * Shows what's available to unlock and what's already unlocked
  */
 
 export const dynamic = 'force-dynamic';
@@ -132,7 +132,7 @@ const MOJO_PRODUCTS = [
     color: '#f5bb00',
     textColor: '#000000',
     icon: Target,
-    description: 'Der exklusive Zirkel für praktizierende Experten. Lernen Sie krankheitsspezifische Behandlungsstrategien von den Besten.',
+    description: 'Der exklusive Zirkel für praktizierende Experten. Lerne krankheitsspezifische Behandlungsstrategien von den Besten.',
     features: [
       '6 Spezialisierungs-Module',
       '45+ Videolektionen',
@@ -156,7 +156,7 @@ const MOJO_PRODUCTS = [
     color: '#000000',
     textColor: '#ffffff',
     icon: Building2,
-    description: 'Der Gipfel der MOJO Journey. Werden Sie Franchisepartner und eröffnen Sie Ihr eigenes MOJO Institut.',
+    description: 'Der Gipfel der MOJO Journey. Werde Franchisepartner und eröffne dein eigenes MOJO Institut.',
     features: [
       'Komplettes Franchise-System',
       'Standort-Analyse',
@@ -381,7 +381,7 @@ function CatalogContent() {
                         ) : (
                           <>
                             <ShoppingCart className="w-5 h-5" />
-                            Zugang kaufen
+                            Zugang freischalten
                           </>
                         )}
                       </button>
@@ -408,7 +408,7 @@ function CatalogContent() {
         <h2 className="text-2xl font-bold mb-2">Komplettpaket: Alle 6 Stufen</h2>
         <p className="text-muted-foreground max-w-xl mx-auto mb-6">
           Sichere dir den kompletten Zugang zu allen Stufen des MOJO Graduierungssystems 
-          und spare dabei über 70% gegenüber dem Einzelkauf.
+          und spare dabei über 70% gegenüber der Einzelfreischaltung.
         </p>
         <div className="flex items-center justify-center gap-4 mb-6">
           <span className="text-4xl font-bold">€14.997</span>
@@ -416,7 +416,7 @@ function CatalogContent() {
         </div>
         <button className="bg-primary text-primary-foreground px-8 py-4 rounded-xl font-semibold text-lg flex items-center gap-2 mx-auto hover:bg-primary/90 transition-colors">
           <ShoppingCart className="w-5 h-5" />
-          Komplettpaket sichern
+          Komplettpaket freischalten
         </button>
       </motion.div>
     </div>
