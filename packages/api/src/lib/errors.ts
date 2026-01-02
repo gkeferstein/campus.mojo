@@ -4,14 +4,21 @@
  */
 
 export class AppError extends Error {
+  public code: string;
+  public statusCode: number;
+  public details?: Record<string, unknown>;
+
   constructor(
-    public code: string,
-    public message: string,
-    public statusCode: number = 500,
-    public details?: Record<string, unknown>
+    code: string,
+    message: string,
+    statusCode: number = 500,
+    details?: Record<string, unknown>
   ) {
     super(message);
     this.name = 'AppError';
+    this.code = code;
+    this.statusCode = statusCode;
+    this.details = details;
     Error.captureStackTrace(this, this.constructor);
   }
 }

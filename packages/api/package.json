@@ -14,7 +14,9 @@
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
     "lint": "eslint src --ext .ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types --test src/**/*.test.ts",
+    "test:watch": "node --experimental-strip-types --test --watch src/**/*.test.ts"
   },
   "dependencies": {
     "@clerk/backend": "^2.29.0",
