@@ -263,7 +263,8 @@ jobs:
           
           git fetch origin
           git checkout main
-          git pull origin main
+          # Discard any local changes to allow clean pull
+          git reset --hard origin/main || git pull origin main
           
           # Login to GHCR
           echo "$GHCR_TOKEN" | docker login ${REGISTRY} -u ${GITHUB_ACTOR} --password-stdin
