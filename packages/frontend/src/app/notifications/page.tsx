@@ -33,7 +33,10 @@ export default function NotificationsPage() {
     if (!token || !isAuthenticated) return;
 
     try {
-      const data = await api.get('/notifications', { token });
+      const data = await api.get('/notifications', token) as {
+        notifications: Notification[];
+        unreadCount: number;
+      };
       setNotifications(data.notifications || []);
       setUnreadCount(data.unreadCount || 0);
     } catch (error) {
@@ -53,7 +56,7 @@ export default function NotificationsPage() {
     if (!token) return;
 
     try {
-      await api.post(`/notifications/${notificationId}/read`, {}, { token });
+      await api.post(`/notifications/${notificationId}/read`, {}, token);
       setNotifications(prev =>
         prev.map(n => n.id === notificationId ? { ...n, isRead: true } : n)
       );
@@ -68,7 +71,7 @@ export default function NotificationsPage() {
 
     setIsMarkingAll(true);
     try {
-      await api.post('/notifications/read-all', {}, { token });
+      await api.post('/notifications/read-all', {}, token);
       setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
       setUnreadCount(0);
     } catch (error) {

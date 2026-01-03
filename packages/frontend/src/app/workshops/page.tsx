@@ -102,7 +102,7 @@ const MOCK_WORKSHOPS = [
 ];
 
 // Mock user tier
-const USER_TIER = "lebensenergie"; // or "resilienz" or "free"
+const USER_TIER: "lebensenergie" | "resilienz" | "free" = "lebensenergie";
 
 // Workshop Card
 function WorkshopCard({ workshop }: { workshop: typeof MOCK_WORKSHOPS[0] }) {
