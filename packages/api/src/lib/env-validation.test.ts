@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { validateEnvironment } from './env-validation.js';
+import { validateEnvironment } from './env-validation.ts';
 
 function withCleanEnv<T>(fn: () => T): T {
   const original = { ...process.env };
