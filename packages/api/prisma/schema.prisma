@@ -69,6 +69,23 @@ model User {
   lessonProgress  LessonProgress[]
   quizAttempts    QuizAttempt[]
   userVariables   UserVariable[]
+  
+  // B2C LEBENSENERGIE Journey
+  journey         UserJourney?
+  checkIns        CheckIn[]
+  badges          UserBadge[]
+  
+  // Community
+  posts           CommunityPost[]
+  comments        CommunityComment[]
+  likes           CommunityLike[]
+  
+  // Workshops
+  workshopBookings WorkshopBooking[]
+  
+  // Notifications
+  notifications   Notification[]
+  notificationPrefs NotificationPreference?
 
   @@map("users")
 }
@@ -203,6 +220,309 @@ model UserVariable {
   @@unique([userId, toolSlug, key])
   @@index([userId, toolSlug])
   @@map("user_variables")
+}
+
+// ============================================
+// B2C LEBENSENERGIE Journey
+// ============================================
+
+// User Journey State - Tracks where user is in the B2C funnel
+model UserJourney {
+  id              String   @id @default(uuid())
+  userId          String   @unique @map("user_id")
+  
+  // Journey State
+  state           String   @default("onboarding_start")
+  // Possible states:
+  // - onboarding_start: Just registered
+  // - onboarding_checkin: Did first check-in
+  // - onboarding_first_module: Completed first module
+  // - trial_active: 7-day trial started
+  // - lebensenergie_active: Paid LEBENSENERGIE member (€29/mo)
+  // - resilienz_active: Paid RESILIENZ member (€79/mo)
+  
+  // Progressive Unlock Tracking
+  checkInsCompleted   Int      @default(0) @map("check_ins_completed")
+  modulesCompleted    Int      @default(0) @map("modules_completed")
+  daysActive          Int      @default(0) @map("days_active")
+  currentLevel        Int      @default(1) @map("current_level") // Gamification level 1-10
+  
+  // Trial Info
+  trialStartedAt      DateTime? @map("trial_started_at")
+  trialEndsAt         DateTime? @map("trial_ends_at")
+  
+  // Subscription Info (from payment webhook)
+  subscriptionTier    String?  @map("subscription_tier") // lebensenergie, resilienz
+  subscriptionStartAt DateTime? @map("subscription_start_at")
+  subscriptionEndsAt  DateTime? @map("subscription_ends_at")
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_journeys")
+}
+
+// LEBENSENERGIE Check-in - Daily energy tracking
+model CheckIn {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  
+  // Core Questions (1-10 scale)
+  energyLevel       Int      @map("energy_level")        // "Wie energievoll fühlst du dich?" (1-10)
+  sleepQuality      Int      @map("sleep_quality")       // "Wie gut hast du geschlafen?" (1-10)
+  moodLevel         Int      @map("mood_level")          // "Wie ist deine Stimmung?" (1-10)
+  
+  // Multiple Choice Responses (stored as JSON arrays)
+  energyGivers      Json     @default("[]") @map("energy_givers")   // What gave energy today
+  energyDrainers    Json     @default("[]") @map("energy_drainers") // What drained energy today
+  
+  // Calculated LEBENSENERGIE Score (average of the 3 scores)
+  lebensenergieScore Float   @map("lebensenergie_score")
+  
+  // Optional notes
+  notes             String?
+  
+  // Metadata
+  checkedInAt       DateTime @default(now()) @map("checked_in_at")
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, checkedInAt])
+  @@map("check_ins")
+}
+
+// Badges/Achievements for Gamification
+model UserBadge {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  badgeSlug String   @map("badge_slug") // e.g. "first-checkin", "7-day-streak", "level-5"
+  earnedAt  DateTime @default(now()) @map("earned_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badgeSlug])
+  @@map("user_badges")
+}
+
+// ============================================
+// Community
+// ============================================
+
+// Community Posts - Success Stories, Questions, Tips
+model CommunityPost {
+  id          String   @id @default(uuid())
+  authorId    String   @map("author_id")
+  
+  // Post Type
+  type        String   @default("post") // post, success_story, question, tip, inspiration
+  
+  // Content
+  title       String?
+  content     String
+  
+  // Media (optional)
+  imageUrl    String?  @map("image_url")
+  
+  // Success Story specific fields
+  beforeScore Float?   @map("before_score") // LEBENSENERGIE score before
+  afterScore  Float?   @map("after_score")  // LEBENSENERGIE score after
+  
+  // Engagement metrics
+  likesCount      Int      @default(0) @map("likes_count")
+  commentsCount   Int      @default(0) @map("comments_count")
+  
+  // Visibility
+  isPublished     Boolean  @default(true) @map("is_published")
+  isPinned        Boolean  @default(false) @map("is_pinned")
+  
+  // Timestamps
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  author      User              @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  comments    CommunityComment[]
+  likes       CommunityLike[]
+
+  @@index([authorId])
+  @@index([type, createdAt])
+  @@map("community_posts")
+}
+
+// Community Comments
+model CommunityComment {
+  id        String   @id @default(uuid())
+  postId    String   @map("post_id")
+  authorId  String   @map("author_id")
+  parentId  String?  @map("parent_id") // For nested replies
+  
+  content   String
+  
+  likesCount Int     @default(0) @map("likes_count")
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  post      CommunityPost     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author    User              @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parent    CommunityComment? @relation("CommentReplies", fields: [parentId], references: [id])
+  replies   CommunityComment[] @relation("CommentReplies")
+
+  @@index([postId])
+  @@index([authorId])
+  @@map("community_comments")
+}
+
+// Community Likes
+model CommunityLike {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  postId    String   @map("post_id")
+  
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@map("community_likes")
+}
+
+// ============================================
+// Live Workshops (RESILIENZ Feature)
+// ============================================
+
+model Workshop {
+  id          String   @id @default(uuid())
+  
+  // Basic Info
+  title       String
+  description String
+  type        String   @default("live") // live, circle, mentoring
+  
+  // Schedule
+  scheduledAt DateTime @map("scheduled_at")
+  duration    Int      @default(60) // in minutes
+  timezone    String   @default("Europe/Berlin")
+  
+  // Capacity
+  maxParticipants Int  @default(12) @map("max_participants")
+  
+  // Host
+  hostName    String   @map("host_name")
+  hostAvatar  String?  @map("host_avatar")
+  
+  // Meeting Link (revealed after booking)
+  meetingUrl  String?  @map("meeting_url")
+  
+  // Replay
+  replayUrl   String?  @map("replay_url")
+  replayAvailableAt DateTime? @map("replay_available_at")
+  
+  // Status
+  status      String   @default("scheduled") // scheduled, live, completed, cancelled
+  
+  // Tier requirement
+  requiredTier String  @default("resilienz") @map("required_tier") // lebensenergie, resilienz
+  
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  bookings    WorkshopBooking[]
+
+  @@index([scheduledAt])
+  @@index([status])
+  @@map("workshops")
+}
+
+model WorkshopBooking {
+  id          String   @id @default(uuid())
+  workshopId  String   @map("workshop_id")
+  userId      String   @map("user_id")
+  
+  status      String   @default("confirmed") // confirmed, cancelled, attended, no_show
+  
+  // Reminders
+  reminderSentAt DateTime? @map("reminder_sent_at")
+  
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  workshop Workshop @relation(fields: [workshopId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workshopId, userId])
+  @@map("workshop_bookings")
+}
+
+// ============================================
+// Notifications
+// ============================================
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  
+  // Type
+  type      String   // checkin_reminder, workshop_reminder, badge_earned, streak_warning, etc.
+  
+  // Content
+  title     String
+  message   String
+  
+  // Link (optional)
+  actionUrl String?  @map("action_url")
+  
+  // Status
+  readAt    DateTime? @map("read_at")
+  sentAt    DateTime? @map("sent_at") // For scheduled notifications
+  
+  // Channels
+  channelEmail Boolean @default(false) @map("channel_email")
+  channelPush  Boolean @default(true) @map("channel_push")
+  
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+  @@index([type, sentAt])
+  @@map("notifications")
+}
+
+// User Notification Preferences
+model NotificationPreference {
+  id        String   @id @default(uuid())
+  userId    String   @unique @map("user_id")
+  
+  // Daily Reminders
+  morningReminderEnabled Boolean @default(true) @map("morning_reminder_enabled")
+  morningReminderTime    String  @default("08:00") @map("morning_reminder_time") // HH:MM
+  
+  eveningReminderEnabled Boolean @default(true) @map("evening_reminder_enabled")
+  eveningReminderTime    String  @default("20:00") @map("evening_reminder_time") // HH:MM
+  
+  // Workshop Reminders
+  workshopReminder24h    Boolean @default(true) @map("workshop_reminder_24h")
+  workshopReminder1h     Boolean @default(true) @map("workshop_reminder_1h")
+  
+  // Streak Warnings
+  streakWarningEnabled   Boolean @default(true) @map("streak_warning_enabled")
+  
+  // Community Notifications
+  communityEnabled       Boolean @default(true) @map("community_enabled")
+  
+  // Email preferences
+  weeklyDigestEnabled    Boolean @default(true) @map("weekly_digest_enabled")
+  
+  timezone  String   @default("Europe/Berlin")
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_preferences")
 }
 
 

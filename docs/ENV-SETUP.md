@@ -81,5 +81,16 @@ WEBHOOK_SECRET=<shared-webhook-secret>
 # FRONTEND
 # ============================================
 NEXT_PUBLIC_API_URL=https://campus.mojo-institut.de/api
+
+# ============================================
+# MESSAGING (messaging.mojo Integration)
+# ============================================
+# Production
+NEXT_PUBLIC_MESSAGING_API_URL=https://messaging.mojo-institut.de
+NEXT_PUBLIC_MESSAGING_WS_URL=wss://messaging.mojo-institut.de
+
+# Development (optional, falls messaging.mojo lokal läuft)
+# NEXT_PUBLIC_MESSAGING_API_URL=http://localhost:3020
+# NEXT_PUBLIC_MESSAGING_WS_URL=ws://localhost:3020
 ```
 

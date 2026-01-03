@@ -18,6 +18,10 @@ import {
   Sparkles,
   ShoppingCart,
   Trophy,
+  Moon,
+  Smile,
+  ArrowRight,
+  Flame,
 } from "lucide-react";
 import { useAuth } from "@/providers/AuthProvider";
 import { api } from "@/lib/api";
@@ -46,6 +50,200 @@ const USER_JOURNEY = {
   completedModules: 8,
   totalModules: 36,
 };
+
+// Mock LEBENSENERGIE data (will come from backend later)
+const LEBENSENERGIE_DATA = {
+  todayScore: null as number | null, // null = kein Check-in heute
+  weeklyScores: [
+    { day: "Mo", score: 6.5 },
+    { day: "Di", score: 7.0 },
+    { day: "Mi", score: 6.8 },
+    { day: "Do", score: 7.5 },
+    { day: "Fr", score: null }, // Heute
+    { day: "Sa", score: null },
+    { day: "So", score: null },
+  ],
+  streak: 4, // 4 Tage in Folge
+  averageScore: 6.95,
+  trend: "+0.5", // Trend gegenüber letzter Woche
+};
+
+// LEBENSENERGIE Dashboard Component (B2C)
+function LebensenergieOverview() {
+  const hasCheckedInToday = LEBENSENERGIE_DATA.todayScore !== null;
+  const weeklyAvg = LEBENSENERGIE_DATA.averageScore;
+  
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.15 }}
+      className="mb-8"
+    >
+      <Card className="bg-gradient-to-br from-[#66dd99]/5 via-card/50 to-emerald-50/30 backdrop-blur-sm border-[#66dd99]/30 overflow-hidden">
+        <CardHeader className="pb-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[#66dd99]/20 flex items-center justify-center">
+                <Zap className="w-5 h-5 text-[#66dd99]" />
+              </div>
+              <div>
+                <CardTitle className="text-lg">Deine LEBENSENERGIE</CardTitle>
+                <CardDescription>Täglicher Check-in für mehr Bewusstsein</CardDescription>
+              </div>
+            </div>
+            {LEBENSENERGIE_DATA.streak > 0 && (
+              <div className="flex items-center gap-1 px-3 py-1 rounded-full bg-amber-100 text-amber-700 text-sm font-medium">
+                <Flame className="w-4 h-4" />
+                {LEBENSENERGIE_DATA.streak} Tage Streak
+              </div>
+            )}
+          </div>
+        </CardHeader>
+
+        <CardContent className="space-y-6">
+          {/* Main Score / CTA */}
+          {hasCheckedInToday ? (
+            // Heute bereits eingecheckt
+            <div className="flex items-center gap-6 p-4 rounded-xl bg-white/50">
+              <div className="text-center">
+                <div className="text-4xl font-bold text-slate-900">
+                  {LEBENSENERGIE_DATA.todayScore?.toFixed(1)}
+                  <span className="text-lg text-slate-400">/10</span>
+                </div>
+                <div className="text-sm text-slate-500 mt-1">Heute</div>
+              </div>
+              
+              <div className="flex-1 space-y-2">
+                <div className="h-3 bg-slate-200 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-gradient-to-r from-[#66dd99] to-[#44cc88] rounded-full transition-all"
+                    style={{ width: `${(LEBENSENERGIE_DATA.todayScore || 0) * 10}%` }}
+                  />
+                </div>
+                <div className="flex justify-between text-xs text-slate-500">
+                  <span>Niedrig</span>
+                  <span>Hoch</span>
+                </div>
+              </div>
+            </div>
+          ) : (
+            // Noch kein Check-in heute
+            <Link href="/onboarding/checkin">
+              <div className="flex items-center gap-4 p-4 rounded-xl bg-[#66dd99]/10 border-2 border-dashed border-[#66dd99]/30 hover:border-[#66dd99] hover:bg-[#66dd99]/20 transition-all cursor-pointer group">
+                <div className="w-14 h-14 rounded-xl bg-[#66dd99] flex items-center justify-center">
+                  <Zap className="w-7 h-7 text-black" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-slate-900 mb-1">
+                    Täglicher Check-in
+                  </h3>
+                  <p className="text-sm text-slate-500">
+                    3 Minuten für mehr Bewusstsein über deine Energie
+                  </p>
+                </div>
+                <ArrowRight className="w-5 h-5 text-[#66dd99] group-hover:translate-x-1 transition-transform" />
+              </div>
+            </Link>
+          )}
+
+          {/* Weekly Overview */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Diese Woche</span>
+              <span className="font-medium text-[#66dd99]">
+                {LEBENSENERGIE_DATA.trend} Trend
+              </span>
+            </div>
+            
+            <div className="flex gap-2">
+              {LEBENSENERGIE_DATA.weeklyScores.map((day, index) => {
+                const isToday = index === 4; // Freitag = heute (Beispiel)
+                const hasScore = day.score !== null;
+                const heightPercent = hasScore ? (day.score / 10) * 100 : 0;
+                
+                return (
+                  <div key={day.day} className="flex-1 flex flex-col items-center gap-1">
+                    <div className="relative w-full h-16 bg-slate-100 rounded-lg overflow-hidden">
+                      {hasScore && (
+                        <motion.div
+                          initial={{ height: 0 }}
+                          animate={{ height: `${heightPercent}%` }}
+                          transition={{ delay: 0.1 * index, duration: 0.5 }}
+                          className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[#66dd99] to-[#88eebb] rounded-lg"
+                        />
+                      )}
+                      {isToday && !hasScore && (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="w-2 h-2 bg-[#66dd99] rounded-full animate-pulse" />
+                        </div>
+                      )}
+                    </div>
+                    <span className={cn(
+                      "text-xs",
+                      isToday ? "font-bold text-[#66dd99]" : "text-slate-400"
+                    )}>
+                      {day.day}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Quick Stats */}
+          <div className="grid grid-cols-3 gap-4">
+            <div className="p-3 rounded-xl bg-white/50 text-center">
+              <div className="flex items-center justify-center gap-1 mb-1">
+                <Zap className="w-4 h-4 text-[#66dd99]" />
+                <span className="text-lg font-bold">{weeklyAvg.toFixed(1)}</span>
+              </div>
+              <div className="text-xs text-muted-foreground">Ø Energie</div>
+            </div>
+            
+            <div className="p-3 rounded-xl bg-white/50 text-center">
+              <div className="flex items-center justify-center gap-1 mb-1">
+                <Moon className="w-4 h-4 text-blue-500" />
+                <span className="text-lg font-bold">7.2</span>
+              </div>
+              <div className="text-xs text-muted-foreground">Ø Schlaf</div>
+            </div>
+            
+            <div className="p-3 rounded-xl bg-white/50 text-center">
+              <div className="flex items-center justify-center gap-1 mb-1">
+                <Smile className="w-4 h-4 text-amber-500" />
+                <span className="text-lg font-bold">7.0</span>
+              </div>
+              <div className="text-xs text-muted-foreground">Ø Stimmung</div>
+            </div>
+          </div>
+
+          {/* CTA */}
+          <div className="flex gap-3 pt-2">
+            <Link href="/onboarding/checkin" className="flex-1">
+              <Button 
+                variant={hasCheckedInToday ? "outline" : "default"}
+                className={cn(
+                  "w-full gap-2",
+                  !hasCheckedInToday && "bg-[#66dd99] hover:bg-[#44cc88] text-black"
+                )}
+              >
+                <Zap className="w-4 h-4" />
+                {hasCheckedInToday ? "Erneut checken" : "Jetzt Check-in"}
+              </Button>
+            </Link>
+            <Link href="/progress" className="flex-1">
+              <Button variant="outline" className="w-full gap-2">
+                <TrendingUp className="w-4 h-4" />
+                Verlauf ansehen
+              </Button>
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+}
 
 function JourneyQuickOverview() {
   const progressPercent = (USER_JOURNEY.completedModules / USER_JOURNEY.totalModules) * 100;
@@ -253,6 +451,9 @@ export default function DashboardPage() {
           Setze dein Lernen fort oder entdecke neue Kurse.
         </p>
       </motion.div>
+
+      {/* LEBENSENERGIE Overview (B2C) */}
+      <LebensenergieOverview />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">

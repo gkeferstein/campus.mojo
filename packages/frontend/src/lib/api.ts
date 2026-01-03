@@ -72,6 +72,148 @@ export const api = {
     request<T>(endpoint, { method: "DELETE" }, token),
 };
 
+// ============================================
+// B2C LEBENSENERGIE API Types & Functions
+// ============================================
+
+// Check-in Types
+export interface CheckInData {
+  energyLevel: number;
+  sleepQuality: number;
+  moodLevel: number;
+  energyGivers: string[];
+  energyDrainers: string[];
+  notes?: string;
+}
+
+export interface CheckInResponse {
+  id: string;
+  energyLevel: number;
+  sleepQuality: number;
+  moodLevel: number;
+  energyGivers: string[];
+  energyDrainers: string[];
+  lebensenergieScore: number;
+  notes: string | null;
+  checkedInAt: string;
+}
+
+export interface CheckInResult {
+  checkIn: CheckInResponse;
+  newBadges: string[];
+}
+
+export interface TodayCheckInResponse {
+  hasCheckedIn: boolean;
+  checkIn: CheckInResponse | null;
+  streak: number;
+}
+
+export interface CheckInHistoryResponse {
+  checkIns: CheckInResponse[];
+  stats: {
+    totalCheckIns: number;
+    avgScore: number;
+    maxScore: number;
+    minScore: number;
+    streak: number;
+  };
+  weeklyData: {
+    day: string;
+    score: number | null;
+    date: string;
+  }[];
+}
+
+// Journey Types
+export interface JourneyResponse {
+  journey: {
+    state: string;
+    currentLevel: number;
+    checkInsCompleted: number;
+    modulesCompleted: number;
+    daysActive: number;
+    streak: number;
+    trend: number;
+    subscriptionTier: string | null;
+    isTrialActive: boolean;
+    trialDaysLeft: number | null;
+  };
+  featureAccess: {
+    dashboard: boolean;
+    modules: 'none' | 'first' | 'basis' | 'all';
+    community: 'none' | 'read' | 'read_write' | 'full';
+    tracker: 'none' | 'basic' | 'advanced';
+    workshops: boolean;
+    circles: boolean;
+    mentoring: boolean;
+  };
+  nextLevel: {
+    level: number;
+    checkInsRequired: number;
+    modulesRequired: number;
+    progress: number;
+  } | null;
+  badges: {
+    slug: string;
+    earnedAt: string;
+  }[];
+  stats: {
+    totalCheckIns: number;
+    avgScore: number;
+  };
+}
+
+export interface BadgesResponse {
+  earned: {
+    slug: string;
+    name: string;
+    description: string;
+    earnedAt: string;
+  }[];
+  available: {
+    slug: string;
+    name: string;
+    description: string;
+  }[];
+  total: number;
+  earnedCount: number;
+}
+
+// Check-in API Functions
+export const checkInApi = {
+  // Submit a new check-in
+  create: (data: CheckInData, token: string) =>
+    api.post<CheckInResult>('/checkin', data, token),
+
+  // Get today's check-in status
+  getToday: (token: string) =>
+    api.get<TodayCheckInResponse>('/checkin/today', token),
+
+  // Get check-in history
+  getHistory: (token: string, days = 30) =>
+    api.get<CheckInHistoryResponse>(`/checkin/history?days=${days}`, token),
+};
+
+// Journey API Functions
+export const journeyApi = {
+  // Get current journey state
+  get: (token: string) =>
+    api.get<JourneyResponse>('/journey', token),
+
+  // Start trial
+  startTrial: (token: string) =>
+    api.post<{ message: string; trialStartedAt: string; trialEndsAt: string; daysLeft: number }>(
+      '/journey/trial/start',
+      {},
+      token
+    ),
+
+  // Get badges
+  getBadges: (token: string) =>
+    api.get<BadgesResponse>('/journey/badges', token),
+};
+
 export { ApiError };
 
 

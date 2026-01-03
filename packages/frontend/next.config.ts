@@ -27,7 +27,7 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
     NEXT_PUBLIC_DIRECTUS_URL: process.env.NEXT_PUBLIC_DIRECTUS_URL,
   },
-  rewrites() {
+  async rewrites() {
     // Proxy API requests to the backend API server in development
     // In production, API runs behind Traefik on same domain
     if (process.env.NODE_ENV === 'development') {
