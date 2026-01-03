@@ -4,11 +4,14 @@
 
 import { describe, it, expect, beforeEach, afterEach } from 'node:test';
 import { FastifyInstance } from 'fastify';
-import { buildApp } from '../../index.test.js';
-import { prisma } from '../../lib/prisma.js';
+import { buildApp } from '../../index.test.ts';
+import { prisma } from '../../lib/prisma.ts';
 import { createHmac } from 'crypto';
 
-describe('Messaging Webhook', () => {
+// Skip if database not available
+const hasDatabase = !!process.env.DATABASE_URL;
+
+describe('Messaging Webhook', { skip: !hasDatabase }, () => {
   let app: FastifyInstance;
   let testUserId: string;
   const webhookSecret = process.env.WEBHOOK_SECRET || 'test-secret';
