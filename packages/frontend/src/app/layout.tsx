@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 import { deDE } from "@clerk/localizations";
-import { dark } from "@clerk/themes";
 import { ThemeProvider } from "next-themes";
 import "./globals.css";
 import { AuthProvider } from "@/providers/AuthProvider";
@@ -42,14 +41,13 @@ export default function RootLayout({
     <ClerkProvider
       localization={deDE}
       appearance={{
-        baseTheme: dark,
         variables: {
           colorPrimary: "#66dd99",
-          colorBackground: "#0a0a0a",
-          colorInputBackground: "#1a1a1a",
-          colorInputText: "#fafafa",
-          colorText: "#fafafa",
-          colorTextSecondary: "#a1a1aa",
+          colorBackground: "#ffffff",
+          colorInputBackground: "#ffffff",
+          colorInputText: "#0a0a0a",
+          colorText: "#0a0a0a",
+          colorTextSecondary: "#6b7280",
           borderRadius: "0.5rem",
         },
         elements: {
@@ -70,7 +68,7 @@ export default function RootLayout({
         <body className="min-h-screen bg-background font-sans antialiased">
           <ThemeProvider
             attribute="class"
-            defaultTheme="dark"
+            defaultTheme="light"
             enableSystem={false}
             storageKey="mojo-theme"
           >

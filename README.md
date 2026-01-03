@@ -9,6 +9,10 @@ Eine moderne headless LMS-Plattform mit Directus CMS, Fastify API und Next.js Fr
 
 ## Architektur
 
+> **Hinweis:** Diese Architektur gilt für **Staging/Production** mit Docker + Traefik.  
+> Für lokale Entwicklung: Frontend/API laufen ohne Docker mit Hot Reload, nur DB in Docker.
+
+**Staging/Production (Docker + Traefik):**
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                        Traefik Reverse Proxy                     │
@@ -19,6 +23,14 @@ Eine moderne headless LMS-Plattform mit Directus CMS, Fastify API und Next.js Fr
 │  (Next.js)  │  (Fastify)  │    CMS      │                        │
 │   :3000     │    :3001    │   :8055     │        :5432           │
 └─────────────┴─────────────┴─────────────┴─────────────────────────┘
+```
+
+**Lokale Entwicklung (ohne Docker für Frontend/API):**
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  Frontend (npm run dev)  │  API (npm run dev)  │  DB (Docker)    │
+│  localhost:3002          │  localhost:3003     │  localhost:5434 │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -97,31 +109,47 @@ cp .env.example .env
 nano .env
 ```
 
-### 2. Docker-Netzwerk erstellen
+### 2. Datenbank starten (Docker)
 
 ```bash
-# Das Compose-Setup nutzt ein externes Docker-Netzwerk (siehe docker-compose*.yml)
-docker network create mojo-network || true
-```
-
-### 3. Services starten
-
-```bash
-# Optional: Lokales Development (mit Host-Port-Expose, ohne Traefik)
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+# Nur die Datenbank läuft in Docker (für lokale Entwicklung)
+docker compose -f docker-compose.local-db.yml up -d
 
 # Logs beobachten
-docker compose logs -f
+docker compose -f docker-compose.local-db.yml logs -f
 ```
 
-### 4. Directus einrichten
+### 3. Frontend & API starten (lokal mit Hot Reload)
+
+```bash
+# Frontend (in einem Terminal)
+cd packages/frontend
+npm install
+PORT=3002 npm run dev
+
+# API (in einem anderen Terminal)
+cd packages/api
+npm install
+PORT=3003 npm run dev
+```
+
+> **Hinweis:** Frontend und API laufen **ohne Docker** mit Hot Reload. Nur die Datenbank läuft in Docker.
+
+### 4. Directus einrichten (optional)
+
+Falls Directus benötigt wird, kann es optional in Docker gestartet werden:
+
+```bash
+# Directus in Docker starten (optional)
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up directus -d
+```
 
 1. Öffne http://localhost:8055/admin
 2. Melde dich mit den Credentials aus `.env` an
 3. Erstelle einen API-Token unter Settings > Access Tokens
 4. Füge den Token in `.env` als `DIRECTUS_ADMIN_TOKEN` hinzu
 
-### 5. Content seeden
+### 5. Content seeden (optional)
 
 ```bash
 export DIRECTUS_TOKEN=<dein-token>
@@ -136,12 +164,15 @@ node scripts/create-test-user.js
 
 ### 7. Zugriff
 
-- **Frontend:** http://localhost:3000
-- **API:** http://localhost:3001
-- **API Health:** http://localhost:3001/health
-- **Directus Admin:** http://localhost:8055/admin
+- **Frontend:** http://localhost:3002 (läuft lokal mit `npm run dev`)
+- **API:** http://localhost:3003 (läuft lokal mit `npm run dev`)
+- **API Health:** http://localhost:3003/health
+- **Directus Admin:** http://localhost:8055/admin (optional, in Docker)
+- **Database:** `postgresql://campus:password@localhost:5434/campus_lms` (in Docker)
 
-> Hinweis: Staging/Production laufen **serverseitig über Traefik-Routing** (kein Port-Expose erforderlich). Siehe `docs/PORT.md`.
+> **Portkonventionen:** Die Ports 3002, 3003 und 5434 wurden gemäß `/MOJO/PORT-CONVENTIONS.md` zugewiesen, um Konflikte mit anderen MOJO-Projekten zu vermeiden.  
+> **Lokale Entwicklung:** Frontend/API laufen **ohne Docker** mit Hot Reload. Nur die Datenbank läuft in Docker.  
+> **Staging/Production:** Nutzen Docker + Traefik (keine Portkonflikte). Siehe `docs/PORT.md`.
 
 ---
 

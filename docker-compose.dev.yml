@@ -4,13 +4,19 @@
 # - Expose service ports on localhost (no Traefik required)
 # - Use localhost URLs for Directus/Frontend/API where applicable
 #
+# Portkonventionen: Siehe /MOJO/PORT-CONVENTIONS.md
+# - Frontend: 3002 (Host) -> 3000 (Container)
+# - API: 3003 (Host) -> 3001 (Container)
+# - Directus: 8055 (Host) -> 8055 (Container)
+# - Database: 5434 (Host) -> 5432 (Container)
+#
 # Usage:
 #   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
 
 services:
   db:
     ports:
-      - "5432:5432"
+      - "5434:5432"  # Port 5434 lokal (gemäß PORT-CONVENTIONS.md)
 
   directus:
     environment:
@@ -23,20 +29,20 @@ services:
     environment:
       NODE_ENV: "development"
       LOG_LEVEL: "debug"
-      # Allow local frontend origin
-      CORS_ORIGIN: "http://localhost:3000"
+      # Allow local frontend origin (Port 3002)
+      CORS_ORIGIN: "http://localhost:3002"
     ports:
-      - "3001:3001"
+      - "3003:3001"  # Port 3003 lokal (gemäß PORT-CONVENTIONS.md)
 
   frontend:
     build:
       args:
-        NEXT_PUBLIC_API_URL: "http://localhost:3001"
+        NEXT_PUBLIC_API_URL: "http://localhost:3003"
         NEXT_PUBLIC_DIRECTUS_URL: "http://localhost:8055"
     environment:
       NODE_ENV: "development"
-      NEXT_PUBLIC_API_URL: "http://localhost:3001"
+      NEXT_PUBLIC_API_URL: "http://localhost:3003"
       NEXT_PUBLIC_DIRECTUS_URL: "http://localhost:8055"
     ports:
-      - "3000:3000"
+      - "3002:3000"  # Port 3002 lokal (gemäß PORT-CONVENTIONS.md)
 

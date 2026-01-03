@@ -2,9 +2,12 @@
 # 
 # Startet nur PostgreSQL für lokale Entwicklung
 # API und Frontend laufen lokal mit Hot Reload
+#
+# Portkonventionen: Siehe /MOJO/PORT-CONVENTIONS.md
+# Database: Port 5434 (Host) -> 5432 (Container)
 
 services:
-  # PostgreSQL Database - Port 5433
+  # PostgreSQL Database - Port 5434 (gemäß PORT-CONVENTIONS.md)
   db:
     image: postgres:16-alpine
     container_name: campus-db-local
@@ -16,7 +19,7 @@ services:
       - campus-db-data-local:/var/lib/postgresql/data
       - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
     ports:
-      - "5434:5432"  # Port 5434 lokal, um Konflikte zu vermeiden
+      - "5434:5432"  # Port 5434 lokal (payments.mojo nutzt 5433, siehe PORT-CONVENTIONS.md)
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-campus}"]
       interval: 10s

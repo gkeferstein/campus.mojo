@@ -1,9 +1,11 @@
 # Docker Compose - Local Development Override
 # 
 # Überschreibt Ports für lokale Entwicklung
-# Frontend: 3002, API: 3003, Directus: 8055
+# Frontend: 3002, API: 3003, Directus: 8055, Database: 5434
 # 
-# Verwendung: docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+# Portkonventionen: Siehe /MOJO/PORT-CONVENTIONS.md
+# 
+# Verwendung: docker compose -f docker-compose.yml -f docker-compose.dev.yml.local up -d
 
 services:
   # LMS API (Fastify) - Port 3003
@@ -29,8 +31,8 @@ services:
       PUBLIC_URL: ${DIRECTUS_PUBLIC_URL:-http://localhost:8055}
     # Traefik-Labels werden für lokale Entwicklung nicht benötigt
 
-  # PostgreSQL Database - Port 5433 (optional, falls du von außen zugreifen willst)
+  # PostgreSQL Database - Port 5434 (gemäß PORT-CONVENTIONS.md)
   db:
     ports:
-      - "5433:5432"  # 5433 lokal, um Konflikte zu vermeiden
+      - "5434:5432"  # 5434 lokal, um Konflikte zu vermeiden (payments.mojo nutzt 5433)
 
