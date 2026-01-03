@@ -63,7 +63,7 @@ jobs:
         working-directory: ${{ matrix.package.path }}
         run: npm run typecheck
 
-      - name: Build (for tests)
+      - name: Build (required for tests)
         working-directory: ${{ matrix.package.path }}
         if: matrix.package.name == 'api'
         run: npm run build
