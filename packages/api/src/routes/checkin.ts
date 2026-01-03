@@ -43,12 +43,29 @@ const BADGE_DEFINITIONS = {
 
 export async function checkInRoutes(fastify: FastifyInstance) {
   // Create a new check-in
-  fastify.post<{ Body: CreateCheckInBody }>(
+  fastify.post(
     '/checkin',
-    { preHandler: authenticate },
-    async (request: AuthenticatedRequest, reply: FastifyReply) => {
-      const { energyLevel, sleepQuality, moodLevel, energyGivers, energyDrainers, notes } = request.body;
-      const userId = request.user!.id;
+    {
+      preHandler: authenticate,
+      schema: {
+        body: {
+          type: 'object',
+          required: ['energyLevel', 'sleepQuality', 'moodLevel', 'energyGivers', 'energyDrainers'],
+          properties: {
+            energyLevel: { type: 'number', minimum: 1, maximum: 10 },
+            sleepQuality: { type: 'number', minimum: 1, maximum: 10 },
+            moodLevel: { type: 'number', minimum: 1, maximum: 10 },
+            energyGivers: { type: 'array', items: { type: 'string' } },
+            energyDrainers: { type: 'array', items: { type: 'string' } },
+            notes: { type: 'string' },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      const body = request.body as CreateCheckInBody;
+      const { energyLevel, sleepQuality, moodLevel, energyGivers, energyDrainers, notes } = body;
+      const userId = (request as any).user.id;
 
       // Validate input
       if (energyLevel < 1 || energyLevel > 10 || sleepQuality < 1 || sleepQuality > 10 || moodLevel < 1 || moodLevel > 10) {
@@ -122,8 +139,8 @@ export async function checkInRoutes(fastify: FastifyInstance) {
   fastify.get(
     '/checkin/history',
     { preHandler: authenticate },
-    async (request: AuthenticatedRequest, reply: FastifyReply) => {
-      const userId = request.user!.id;
+    async (request, reply) => {
+      const userId = (request as any).user.id;
       const { days = '30' } = request.query as { days?: string };
       const daysNum = parseInt(days, 10);
 
@@ -181,8 +198,8 @@ export async function checkInRoutes(fastify: FastifyInstance) {
   fastify.get(
     '/checkin/today',
     { preHandler: authenticate },
-    async (request: AuthenticatedRequest, reply: FastifyReply) => {
-      const userId = request.user!.id;
+    async (request, reply) => {
+      const userId = (request as any).user.id;
 
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -243,7 +260,8 @@ async function calculateStreak(userId: string): Promise<number> {
   today.setHours(0, 0, 0, 0);
 
   // Check if checked in today or yesterday (streak continues)
-  const lastCheckIn = new Date(checkIns[0].checkedInAt);
+  if (checkIns.length === 0) return 0;
+  const lastCheckIn = new Date(checkIns[0]!.checkedInAt);
   lastCheckIn.setHours(0, 0, 0, 0);
 
   const daysDiff = Math.floor((today.getTime() - lastCheckIn.getTime()) / (1000 * 60 * 60 * 24));
@@ -284,6 +302,11 @@ function aggregateWeekly(checkIns: { checkedInAt: Date; lebensenergieScore: numb
     const date = new Date();
     date.setDate(date.getDate() - i);
     date.setHours(0, 0, 0, 0);
+    
+    const dayIndex = date.getDay();
+    const dayName = weekDays[dayIndex] || 'So';
+    const dateStr = date.toISOString().split('T')[0];
+    if (!dateStr) continue;
 
     const nextDate = new Date(date);
     nextDate.setDate(nextDate.getDate() + 1);
@@ -294,9 +317,9 @@ function aggregateWeekly(checkIns: { checkedInAt: Date; lebensenergieScore: numb
     });
 
     result.push({
-      day: weekDays[date.getDay()],
+      day: dayName,
       score: dayCheckIn ? Math.round(dayCheckIn.lebensenergieScore * 10) / 10 : null,
-      date: date.toISOString().split('T')[0],
+      date: dateStr,
     });
   }
 
@@ -393,7 +416,7 @@ async function checkAndAwardBadges(userId: string): Promise<string[]> {
   }
 
   // High energy badge
-  if (recentCheckIns.length > 0 && recentCheckIns[0].lebensenergieScore >= 9 && !existingSlugs.has('high-energy')) {
+  if (recentCheckIns.length > 0 && recentCheckIns[0]!.lebensenergieScore >= 9 && !existingSlugs.has('high-energy')) {
     await prisma.userBadge.create({ data: { userId, badgeSlug: 'high-energy' } });
     newBadges.push('high-energy');
   }
