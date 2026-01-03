@@ -35,19 +35,31 @@ export async function communityRoutes(fastify: FastifyInstance) {
   // Get community posts (feed)
   fastify.get(
     '/community/posts',
-    { preHandler: authenticate },
-    async (request: AuthenticatedRequest, reply: FastifyReply) => {
+    {
+      preHandler: authenticate,
+      schema: {
+        querystring: {
+          type: 'object',
+          properties: {
+            type: { type: 'string' },
+            page: { type: 'string' },
+            limit: { type: 'string' },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
       const { type, page = '1', limit = '20' } = request.query as PostQuery;
       const skip = (parseInt(page) - 1) * parseInt(limit);
 
       // Check user's community access
       const journey = await prisma.userJourney.findUnique({
-        where: { userId: request.user.id },
+        where: { userId: (request as any).user.id },
       });
 
       const hasReadAccess = journey && ['trial_active', 'lebensenergie_active', 'resilienz_active'].includes(journey.state);
       
-      if (!hasReadAccess && journey?.checkInsCompleted < 1) {
+      if (!hasReadAccess && (journey?.checkInsCompleted ?? 0) < 1) {
         return reply.status(403).send({ 
           error: 'Complete at least one check-in to access the community',
           requiredCheckIns: 1,
@@ -88,7 +100,7 @@ export async function communityRoutes(fastify: FastifyInstance) {
       // Check which posts the user has liked
       const userLikes = await prisma.communityLike.findMany({
         where: {
-          userId: request.user.id,
+          userId: (request as any).user.id,
           postId: { in: posts.map(p => p.id) },
         },
         select: { postId: true },
@@ -126,15 +138,32 @@ export async function communityRoutes(fastify: FastifyInstance) {
   );
 
   // Create a new post
-  fastify.post<{ Body: CreatePostBody }>(
+  fastify.post(
     '/community/posts',
-    { preHandler: authenticate },
-    async (request: AuthenticatedRequest, reply: FastifyReply) => {
-      const { type, title, content, imageUrl, beforeScore, afterScore } = request.body;
+    {
+      preHandler: authenticate,
+      schema: {
+        body: {
+          type: 'object',
+          required: ['type', 'content'],
+          properties: {
+            type: { type: 'string', enum: ['post', 'success_story', 'question', 'tip', 'inspiration'] },
+            title: { type: 'string' },
+            content: { type: 'string' },
+            imageUrl: { type: 'string' },
+            beforeScore: { type: 'number' },
+            afterScore: { type: 'number' },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      const body = request.body as CreatePostBody;
+      const { type, title, content, imageUrl, beforeScore, afterScore } = body;
 
       // Check user's community write access
       const journey = await prisma.userJourney.findUnique({
-        where: { userId: request.user.id },
+        where: { userId: (request as any).user.id },
       });
 
       const hasWriteAccess = journey && ['trial_active', 'lebensenergie_active', 'resilienz_active'].includes(journey.state);
@@ -154,7 +183,7 @@ export async function communityRoutes(fastify: FastifyInstance) {
 
       const post = await prisma.communityPost.create({
         data: {
-          authorId: request.user.id,
+          authorId: (request as any).user.id,
           type,
           title,
           content,
@@ -176,13 +205,13 @@ export async function communityRoutes(fastify: FastifyInstance) {
 
       // Award badge for first post
       const postCount = await prisma.communityPost.count({
-        where: { authorId: request.user.id },
+        where: { authorId: (request as any).user.id },
       });
 
       if (postCount === 1) {
         await prisma.userBadge.upsert({
-          where: { userId_badgeSlug: { userId: request.user.id, badgeSlug: 'first-post' } },
-          create: { userId: request.user.id, badgeSlug: 'first-post' },
+          where: { userId_badgeSlug: { userId: (request as any).user.id, badgeSlug: 'first-post' } },
+          create: { userId: (request as any).user.id, badgeSlug: 'first-post' },
           update: {},
         });
       }
@@ -190,8 +219,8 @@ export async function communityRoutes(fastify: FastifyInstance) {
       // Award badge for success story
       if (type === 'success_story' && afterScore && beforeScore && afterScore > beforeScore) {
         await prisma.userBadge.upsert({
-          where: { userId_badgeSlug: { userId: request.user.id, badgeSlug: 'success-story' } },
-          create: { userId: request.user.id, badgeSlug: 'success-story' },
+          where: { userId_badgeSlug: { userId: (request as any).user.id, badgeSlug: 'success-story' } },
+          create: { userId: (request as any).user.id, badgeSlug: 'success-story' },
           update: {},
         });
       }
@@ -219,11 +248,22 @@ export async function communityRoutes(fastify: FastifyInstance) {
   );
 
   // Get single post with comments
-  fastify.get<{ Params: { postId: string } }>(
+  fastify.get(
     '/community/posts/:postId',
-    { preHandler: authenticate },
-    async (request: AuthenticatedRequest, reply: FastifyReply) => {
-      const { postId } = request.params;
+    {
+      preHandler: authenticate,
+      schema: {
+        params: {
+          type: 'object',
+          required: ['postId'],
+          properties: {
+            postId: { type: 'string' },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      const { postId } = request.params as { postId: string };
 
       const post = await prisma.communityPost.findUnique({
         where: { id: postId, isPublished: true },
@@ -275,7 +315,7 @@ export async function communityRoutes(fastify: FastifyInstance) {
 
       // Check if user liked
       const userLike = await prisma.communityLike.findUnique({
-        where: { userId_postId: { userId: request.user.id, postId } },
+        where: { userId_postId: { userId: (request as any).user.id, postId } },
       });
 
       return reply.send({
@@ -325,11 +365,22 @@ export async function communityRoutes(fastify: FastifyInstance) {
   );
 
   // Like/unlike a post
-  fastify.post<{ Params: { postId: string } }>(
+  fastify.post(
     '/community/posts/:postId/like',
-    { preHandler: authenticate },
-    async (request: AuthenticatedRequest, reply: FastifyReply) => {
-      const { postId } = request.params;
+    {
+      preHandler: authenticate,
+      schema: {
+        params: {
+          type: 'object',
+          required: ['postId'],
+          properties: {
+            postId: { type: 'string' },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      const { postId } = request.params as { postId: string };
 
       // Check if post exists
       const post = await prisma.communityPost.findUnique({
@@ -342,7 +393,7 @@ export async function communityRoutes(fastify: FastifyInstance) {
 
       // Toggle like
       const existingLike = await prisma.communityLike.findUnique({
-        where: { userId_postId: { userId: request.user.id, postId } },
+        where: { userId_postId: { userId: (request as any).user.id, postId } },
       });
 
       if (existingLike) {
@@ -358,7 +409,7 @@ export async function communityRoutes(fastify: FastifyInstance) {
       } else {
         // Like
         await prisma.communityLike.create({
-          data: { userId: request.user.id, postId },
+          data: { userId: (request as any).user.id, postId },
         });
         await prisma.communityPost.update({
           where: { id: postId },
@@ -374,16 +425,36 @@ export async function communityRoutes(fastify: FastifyInstance) {
   // ============================================
 
   // Add comment to a post
-  fastify.post<{ Params: { postId: string }; Body: CreateCommentBody }>(
+  fastify.post(
     '/community/posts/:postId/comments',
-    { preHandler: authenticate },
-    async (request: AuthenticatedRequest, reply: FastifyReply) => {
-      const { postId } = request.params;
-      const { content, parentId } = request.body;
+    {
+      preHandler: authenticate,
+      schema: {
+        params: {
+          type: 'object',
+          required: ['postId'],
+          properties: {
+            postId: { type: 'string' },
+          },
+        },
+        body: {
+          type: 'object',
+          required: ['content'],
+          properties: {
+            content: { type: 'string' },
+            parentId: { type: 'string' },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      const { postId } = request.params as { postId: string };
+      const body = request.body as CreateCommentBody;
+      const { content, parentId } = body;
 
       // Check user's community write access
       const journey = await prisma.userJourney.findUnique({
-        where: { userId: request.user.id },
+        where: { userId: (request as any).user.id },
       });
 
       const hasWriteAccess = journey && ['trial_active', 'lebensenergie_active', 'resilienz_active'].includes(journey.state);
@@ -416,7 +487,7 @@ export async function communityRoutes(fastify: FastifyInstance) {
       const comment = await prisma.communityComment.create({
         data: {
           postId,
-          authorId: request.user.id,
+          authorId: (request as any).user.id,
           content,
           parentId,
         },
@@ -462,7 +533,7 @@ export async function communityRoutes(fastify: FastifyInstance) {
   fastify.get(
     '/community/success-stories',
     { preHandler: authenticate },
-    async (request: AuthenticatedRequest, reply: FastifyReply) => {
+    async (request, reply) => {
       const stories = await prisma.communityPost.findMany({
         where: {
           type: 'success_story',
@@ -520,7 +591,7 @@ export async function communityRoutes(fastify: FastifyInstance) {
   fastify.get(
     '/community/daily-inspiration',
     { preHandler: authenticate },
-    async (request: AuthenticatedRequest, reply: FastifyReply) => {
+    async (request, reply) => {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 

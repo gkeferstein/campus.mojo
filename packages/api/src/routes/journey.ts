@@ -3,9 +3,7 @@ import { prisma } from '../lib/prisma.js';
 import { authenticate, AuthUser } from '../middleware/auth.js';
 
 // Extend FastifyRequest with user
-interface AuthenticatedRequest extends FastifyRequest {
-  user: AuthUser;
-}
+// Removed AuthenticatedRequest - use (request as any).user instead
 
 // Feature access based on journey state
 const FEATURE_ACCESS = {
@@ -84,8 +82,8 @@ export async function journeyRoutes(fastify: FastifyInstance) {
   fastify.get(
     '/journey',
     { preHandler: authenticate },
-    async (request: AuthenticatedRequest, reply: FastifyReply) => {
-      const userId = request.user!.id;
+    async (request, reply) => {
+      const userId = (request as any).user.id;
 
       // Get or create journey
       let journey = await prisma.userJourney.findUnique({
@@ -191,8 +189,8 @@ export async function journeyRoutes(fastify: FastifyInstance) {
   fastify.post(
     '/journey/trial/start',
     { preHandler: authenticate },
-    async (request: AuthenticatedRequest, reply: FastifyReply) => {
-      const userId = request.user!.id;
+    async (request, reply) => {
+      const userId = (request as any).user.id;
 
       let journey = await prisma.userJourney.findUnique({
         where: { userId },
@@ -242,8 +240,8 @@ export async function journeyRoutes(fastify: FastifyInstance) {
   fastify.get(
     '/journey/badges',
     { preHandler: authenticate },
-    async (request: AuthenticatedRequest, reply: FastifyReply) => {
-      const userId = request.user!.id;
+    async (request, reply) => {
+      const userId = (request as any).user.id;
 
       const badges = await prisma.userBadge.findMany({
         where: { userId },
@@ -291,7 +289,8 @@ async function calculateStreak(userId: string): Promise<number> {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const lastCheckIn = new Date(checkIns[0].checkedInAt);
+  if (checkIns.length === 0) return 0;
+  const lastCheckIn = new Date(checkIns[0]!.checkedInAt);
   lastCheckIn.setHours(0, 0, 0, 0);
 
   const daysDiff = Math.floor((today.getTime() - lastCheckIn.getTime()) / (1000 * 60 * 60 * 24));
@@ -304,6 +303,7 @@ async function calculateStreak(userId: string): Promise<number> {
     const checkInDate = new Date(checkIn.checkedInAt);
     checkInDate.setHours(0, 0, 0, 0);
     const dateStr = checkInDate.toISOString().split('T')[0];
+    if (!dateStr) continue;
 
     if (seenDates.has(dateStr)) continue; // Skip duplicates
     seenDates.add(dateStr);

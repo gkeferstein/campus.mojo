@@ -2,9 +2,7 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { prisma } from '../lib/prisma.js';
 import { authenticate, AuthUser } from '../middleware/auth.js';
 
-interface AuthenticatedRequest extends FastifyRequest {
-  user: AuthUser;
-}
+// Removed AuthenticatedRequest - use (request as any).user instead
 
 interface WorkshopQuery {
   upcoming?: string;
@@ -22,13 +20,13 @@ export async function workshopRoutes(fastify: FastifyInstance) {
   fastify.get(
     '/workshops',
     { preHandler: authenticate },
-    async (request: AuthenticatedRequest, reply: FastifyReply) => {
+    async (request, reply) => {
       const { upcoming = 'true', type, page = '1', limit = '10' } = request.query as WorkshopQuery;
       const skip = (parseInt(page) - 1) * parseInt(limit);
 
       // Check user's subscription tier
       const journey = await prisma.userJourney.findUnique({
-        where: { userId: request.user.id },
+        where: { userId: (request as any).user.id },
       });
 
       const userTier = journey?.subscriptionTier || 'free';
@@ -48,7 +46,7 @@ export async function workshopRoutes(fastify: FastifyInstance) {
               select: { bookings: true },
             },
             bookings: {
-              where: { userId: request.user.id },
+              where: { userId: (request as any).user.id },
               select: { id: true, status: true },
             },
           },
@@ -92,14 +90,25 @@ export async function workshopRoutes(fastify: FastifyInstance) {
   );
 
   // Get workshop details
-  fastify.get<{ Params: { workshopId: string } }>(
+  fastify.get(
     '/workshops/:workshopId',
-    { preHandler: authenticate },
-    async (request: AuthenticatedRequest, reply: FastifyReply) => {
-      const { workshopId } = request.params;
+    {
+      preHandler: authenticate,
+      schema: {
+        params: {
+          type: 'object',
+          required: ['workshopId'],
+          properties: {
+            workshopId: { type: 'string' },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      const { workshopId } = request.params as { workshopId: string };
 
       const journey = await prisma.userJourney.findUnique({
-        where: { userId: request.user.id },
+        where: { userId: (request as any).user.id },
       });
 
       const userTier = journey?.subscriptionTier || 'free';
@@ -111,7 +120,7 @@ export async function workshopRoutes(fastify: FastifyInstance) {
             select: { bookings: true },
           },
           bookings: {
-            where: { userId: request.user.id },
+            where: { userId: (request as any).user.id },
             select: { id: true, status: true },
           },
         },
@@ -121,7 +130,7 @@ export async function workshopRoutes(fastify: FastifyInstance) {
         return reply.status(404).send({ error: 'Workshop not found' });
       }
 
-      const isBooked = workshop.bookings.length > 0 && workshop.bookings[0].status === 'confirmed';
+      const isBooked = workshop.bookings.length > 0 && workshop.bookings[0]?.status === 'confirmed';
       const hasAccess = userTier === 'resilienz' || (userTier === 'lebensenergie' && workshop.requiredTier === 'lebensenergie');
 
       return reply.send({
@@ -157,15 +166,26 @@ export async function workshopRoutes(fastify: FastifyInstance) {
   );
 
   // Book a workshop
-  fastify.post<{ Params: { workshopId: string } }>(
+  fastify.post(
     '/workshops/:workshopId/book',
-    { preHandler: authenticate },
-    async (request: AuthenticatedRequest, reply: FastifyReply) => {
-      const { workshopId } = request.params;
+    {
+      preHandler: authenticate,
+      schema: {
+        params: {
+          type: 'object',
+          required: ['workshopId'],
+          properties: {
+            workshopId: { type: 'string' },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      const { workshopId } = request.params as { workshopId: string };
 
       // Check subscription tier
       const journey = await prisma.userJourney.findUnique({
-        where: { userId: request.user.id },
+        where: { userId: (request as any).user.id },
       });
 
       const userTier = journey?.subscriptionTier || 'free';
@@ -193,7 +213,7 @@ export async function workshopRoutes(fastify: FastifyInstance) {
 
       // Check if already booked
       const existingBooking = await prisma.workshopBooking.findUnique({
-        where: { workshopId_userId: { workshopId, userId: request.user.id } },
+        where: { workshopId_userId: { workshopId, userId: (request as any).user.id } },
       });
 
       if (existingBooking) {
@@ -226,20 +246,20 @@ export async function workshopRoutes(fastify: FastifyInstance) {
       await prisma.workshopBooking.create({
         data: {
           workshopId,
-          userId: request.user.id,
+          userId: (request as any).user.id,
           status: 'confirmed',
         },
       });
 
       // Award badge for first workshop
       const bookingCount = await prisma.workshopBooking.count({
-        where: { userId: request.user.id, status: 'confirmed' },
+        where: { userId: (request as any).user.id, status: 'confirmed' },
       });
 
       if (bookingCount === 1) {
         await prisma.userBadge.upsert({
-          where: { userId_badgeSlug: { userId: request.user.id, badgeSlug: 'first-workshop' } },
-          create: { userId: request.user.id, badgeSlug: 'first-workshop' },
+          where: { userId_badgeSlug: { userId: (request as any).user.id, badgeSlug: 'first-workshop' } },
+          create: { userId: (request as any).user.id, badgeSlug: 'first-workshop' },
           update: {},
         });
       }
@@ -253,14 +273,25 @@ export async function workshopRoutes(fastify: FastifyInstance) {
   );
 
   // Cancel workshop booking
-  fastify.delete<{ Params: { workshopId: string } }>(
+  fastify.delete(
     '/workshops/:workshopId/book',
-    { preHandler: authenticate },
-    async (request: AuthenticatedRequest, reply: FastifyReply) => {
-      const { workshopId } = request.params;
+    {
+      preHandler: authenticate,
+      schema: {
+        params: {
+          type: 'object',
+          required: ['workshopId'],
+          properties: {
+            workshopId: { type: 'string' },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      const { workshopId } = request.params as { workshopId: string };
 
       const booking = await prisma.workshopBooking.findUnique({
-        where: { workshopId_userId: { workshopId, userId: request.user.id } },
+        where: { workshopId_userId: { workshopId, userId: (request as any).user.id } },
         include: { workshop: true },
       });
 
@@ -290,10 +321,10 @@ export async function workshopRoutes(fastify: FastifyInstance) {
   fastify.get(
     '/workshops/my-bookings',
     { preHandler: authenticate },
-    async (request: AuthenticatedRequest, reply: FastifyReply) => {
+    async (request, reply) => {
       const bookings = await prisma.workshopBooking.findMany({
         where: { 
-          userId: request.user.id,
+          userId: (request as any).user.id,
           status: { in: ['confirmed', 'attended'] },
         },
         include: {
@@ -343,7 +374,7 @@ export async function workshopRoutes(fastify: FastifyInstance) {
   fastify.get(
     '/workshops/calendar',
     { preHandler: authenticate },
-    async (request: AuthenticatedRequest, reply: FastifyReply) => {
+    async (request, reply) => {
       const { month, year } = request.query as { month?: string; year?: string };
       
       const now = new Date();
@@ -354,7 +385,7 @@ export async function workshopRoutes(fastify: FastifyInstance) {
       const endDate = new Date(targetYear, targetMonth, 0, 23, 59, 59);
 
       const journey = await prisma.userJourney.findUnique({
-        where: { userId: request.user.id },
+        where: { userId: (request as any).user.id },
       });
       const userTier = journey?.subscriptionTier || 'free';
 
@@ -368,7 +399,7 @@ export async function workshopRoutes(fastify: FastifyInstance) {
         },
         include: {
           bookings: {
-            where: { userId: request.user.id },
+            where: { userId: (request as any).user.id },
             select: { status: true },
           },
           _count: { select: { bookings: true } },

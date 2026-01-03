@@ -2,9 +2,7 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { prisma } from '../lib/prisma.js';
 import { authenticate, AuthUser } from '../middleware/auth.js';
 
-interface AuthenticatedRequest extends FastifyRequest {
-  user: AuthUser;
-}
+// Removed AuthenticatedRequest - use (request as any).user instead
 
 interface UpdatePreferencesBody {
   morningReminderEnabled?: boolean;
@@ -28,7 +26,7 @@ export async function notificationRoutes(fastify: FastifyInstance) {
   fastify.get(
     '/notifications',
     { preHandler: authenticate },
-    async (request: AuthenticatedRequest, reply: FastifyReply) => {
+    async (request, reply) => {
       const { unreadOnly = 'false', page = '1', limit = '20' } = request.query as {
         unreadOnly?: string;
         page?: string;
@@ -38,7 +36,7 @@ export async function notificationRoutes(fastify: FastifyInstance) {
       const skip = (parseInt(page) - 1) * parseInt(limit);
 
       const where = {
-        userId: request.user.id,
+        userId: (request as any).user.id,
         ...(unreadOnly === 'true' && { readAt: null }),
       };
 
@@ -51,7 +49,7 @@ export async function notificationRoutes(fastify: FastifyInstance) {
         }),
         prisma.notification.count({ where }),
         prisma.notification.count({
-          where: { userId: request.user.id, readAt: null },
+          where: { userId: (request as any).user.id, readAt: null },
         }),
       ]);
 
@@ -80,11 +78,11 @@ export async function notificationRoutes(fastify: FastifyInstance) {
   fastify.post<{ Params: { notificationId: string } }>(
     '/notifications/:notificationId/read',
     { preHandler: authenticate },
-    async (request: AuthenticatedRequest, reply: FastifyReply) => {
-      const { notificationId } = request.params;
+    async (request, reply) => {
+      const { notificationId } = request.params as { notificationId: string };
 
       const notification = await prisma.notification.findUnique({
-        where: { id: notificationId, userId: request.user.id },
+        where: { id: notificationId, userId: (request as any).user.id },
       });
 
       if (!notification) {
@@ -104,9 +102,9 @@ export async function notificationRoutes(fastify: FastifyInstance) {
   fastify.post(
     '/notifications/read-all',
     { preHandler: authenticate },
-    async (request: AuthenticatedRequest, reply: FastifyReply) => {
+    async (request, reply) => {
       await prisma.notification.updateMany({
-        where: { userId: request.user.id, readAt: null },
+        where: { userId: (request as any).user.id, readAt: null },
         data: { readAt: new Date() },
       });
 
@@ -122,15 +120,15 @@ export async function notificationRoutes(fastify: FastifyInstance) {
   fastify.get(
     '/notifications/preferences',
     { preHandler: authenticate },
-    async (request: AuthenticatedRequest, reply: FastifyReply) => {
+    async (request, reply) => {
       let prefs = await prisma.notificationPreference.findUnique({
-        where: { userId: request.user.id },
+        where: { userId: (request as any).user.id },
       });
 
       if (!prefs) {
         // Create default preferences
         prefs = await prisma.notificationPreference.create({
-          data: { userId: request.user.id },
+          data: { userId: (request as any).user.id },
         });
       }
 
@@ -155,8 +153,8 @@ export async function notificationRoutes(fastify: FastifyInstance) {
   fastify.patch<{ Body: UpdatePreferencesBody }>(
     '/notifications/preferences',
     { preHandler: authenticate },
-    async (request: AuthenticatedRequest, reply: FastifyReply) => {
-      const updates = request.body;
+    async (request, reply) => {
+      const updates = request.body as UpdatePreferencesBody;
 
       // Validate time format
       if (updates.morningReminderTime && !/^\d{2}:\d{2}$/.test(updates.morningReminderTime)) {
@@ -167,9 +165,9 @@ export async function notificationRoutes(fastify: FastifyInstance) {
       }
 
       const prefs = await prisma.notificationPreference.upsert({
-        where: { userId: request.user.id },
+        where: { userId: (request as any).user.id },
         create: {
-          userId: request.user.id,
+          userId: (request as any).user.id,
           ...updates,
         },
         update: updates,
