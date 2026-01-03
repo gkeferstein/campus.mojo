@@ -11,7 +11,7 @@ import {
   ServiceUnavailableError,
   UnauthorizedError,
   ValidationError,
-} from './errors.js';
+} from './errors.ts';
 
 describe('AppError & custom errors', () => {
   it('AppError setzt code/statusCode/details und ist instanceof Error', () => {
