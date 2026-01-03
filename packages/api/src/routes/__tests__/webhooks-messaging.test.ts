@@ -2,10 +2,11 @@
  * Tests for messaging webhook route
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'node:test';
+import { describe, it, beforeEach, afterEach } from 'node:test';
+import assert from 'node:assert/strict';
 import { FastifyInstance } from 'fastify';
-import { buildApp } from '../../index.test.ts';
-import { prisma } from '../../lib/prisma.ts';
+import { buildApp } from '../../index.test.js';
+import { prisma } from '../../lib/prisma.js';
 import { createHmac } from 'crypto';
 
 // Skip if database not available
@@ -76,18 +77,18 @@ describe('Messaging Webhook', { skip: !hasDatabase }, () => {
         payload,
       });
 
-      expect(response.statusCode).toBe(200);
+      assert.strictEqual(response.statusCode, 200);
       const body = JSON.parse(response.body);
-      expect(body.success).toBe(true);
+      assert.strictEqual(body.success, true);
 
       // Verify notification was created
       const notification = await prisma.notification.findFirst({
         where: { userId: testUserId, type: 'message_new' },
       });
 
-      expect(notification).toBeDefined();
-      expect(notification?.title).toContain('Neue Nachricht von John Doe');
-      expect(notification?.actionUrl).toBe('/chat/conv-123');
+      assert(notification);
+      assert(notification.title.includes('Neue Nachricht von John Doe'));
+      assert.strictEqual(notification.actionUrl, '/chat/conv-123');
     });
 
     it('should handle message.reply event', async () => {
@@ -114,14 +115,14 @@ describe('Messaging Webhook', { skip: !hasDatabase }, () => {
         payload,
       });
 
-      expect(response.statusCode).toBe(200);
+      assert.strictEqual(response.statusCode, 200);
 
       const notification = await prisma.notification.findFirst({
         where: { userId: testUserId, type: 'message_reply' },
       });
 
-      expect(notification).toBeDefined();
-      expect(notification?.title).toContain('Antwort in Team Chat');
+      assert(notification);
+      assert(notification.title.includes('Antwort in Team Chat'));
     });
 
     it('should handle contact.request event', async () => {
@@ -146,14 +147,14 @@ describe('Messaging Webhook', { skip: !hasDatabase }, () => {
         payload,
       });
 
-      expect(response.statusCode).toBe(200);
+      assert.strictEqual(response.statusCode, 200);
 
       const notification = await prisma.notification.findFirst({
         where: { userId: testUserId, type: 'contact_request' },
       });
 
-      expect(notification).toBeDefined();
-      expect(notification?.title).toContain('Kontaktanfrage von Bob Smith');
+      assert(notification);
+      assert(notification.title.includes('Kontaktanfrage von Bob Smith'));
     });
 
     it('should return 400 for invalid user', async () => {
@@ -180,7 +181,7 @@ describe('Messaging Webhook', { skip: !hasDatabase }, () => {
         payload,
       });
 
-      expect(response.statusCode).toBe(400);
+      assert.strictEqual(response.statusCode, 400);
     });
 
     it('should log webhook event', async () => {
@@ -209,8 +210,8 @@ describe('Messaging Webhook', { skip: !hasDatabase }, () => {
         where: { source: 'messaging', eventType: 'message.new' },
       });
 
-      expect(webhookEvent).toBeDefined();
-      expect(webhookEvent?.processedAt).toBeDefined();
+      assert(webhookEvent);
+      assert(webhookEvent.processedAt);
     });
   });
 });

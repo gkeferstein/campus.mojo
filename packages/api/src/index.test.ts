@@ -3,9 +3,9 @@
  */
 
 import Fastify from 'fastify';
-import { healthRoutes } from './routes/health.ts';
-import { webhooksRoutes } from './routes/webhooks.ts';
-import { notificationRoutes } from './routes/notifications.ts';
+import { healthRoutes } from './routes/health.js';
+import { webhooksRoutes } from './routes/webhooks.js';
+import { notificationRoutes } from './routes/notifications.js';
 
 export async function buildApp() {
   const app = Fastify({

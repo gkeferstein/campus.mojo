@@ -381,10 +381,13 @@ export async function workshopRoutes(fastify: FastifyInstance) {
       
       for (const workshop of workshops) {
         const dateKey = workshop.scheduledAt.toISOString().split('T')[0];
+        if (!dateKey) continue;
+        
         if (!calendarData[dateKey]) {
           calendarData[dateKey] = [];
         }
-        calendarData[dateKey].push(workshop);
+        // TypeScript knows dateKey is defined here due to continue above
+        calendarData[dateKey]!.push(workshop);
       }
 
       return reply.send({
@@ -392,18 +395,21 @@ export async function workshopRoutes(fastify: FastifyInstance) {
         year: targetYear,
         workshops: Object.entries(calendarData).map(([date, items]) => ({
           date,
-          workshops: items.map(w => ({
-            id: w.id,
-            title: w.title,
-            type: w.type,
-            time: w.scheduledAt.toISOString().split('T')[1].substring(0, 5),
-            duration: w.duration,
-            hostName: w.hostName,
-            spotsLeft: w.maxParticipants - w._count.bookings,
-            isBooked: w.bookings.some(b => b.status === 'confirmed'),
-            hasAccess: userTier === 'resilienz' || (userTier === 'lebensenergie' && w.requiredTier === 'lebensenergie'),
-            status: w.status,
-          })),
+          workshops: items.map(w => {
+            const timePart = w.scheduledAt.toISOString().split('T')[1];
+            return {
+              id: w.id,
+              title: w.title,
+              type: w.type,
+              time: timePart ? timePart.substring(0, 5) : '00:00',
+              duration: w.duration,
+              hostName: w.hostName,
+              spotsLeft: w.maxParticipants - w._count.bookings,
+              isBooked: w.bookings.some(b => b.status === 'confirmed'),
+              hasAccess: userTier === 'resilienz' || (userTier === 'lebensenergie' && w.requiredTier === 'lebensenergie'),
+              status: w.status,
+            };
+          }),
         })),
         userTier,
       });

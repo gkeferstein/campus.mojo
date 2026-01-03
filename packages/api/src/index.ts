@@ -42,8 +42,8 @@ const allowedOrigins = process.env.CORS_ORIGIN?.split(',').filter(Boolean) || []
 
 // In development, allow all localhost origins
 const isDevelopment = process.env.NODE_ENV !== 'production';
-const corsOrigin = isDevelopment 
-  ? (origin, cb) => {
+const corsOrigin: string | string[] | ((origin: string | undefined, cb: (err: Error | null, origin: string | boolean) => void) => void) = isDevelopment 
+  ? (origin: string | undefined, cb: (err: Error | null, origin: string | boolean) => void) => {
       // Allow all localhost origins in development
       if (!origin || origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
         cb(null, true);
@@ -51,7 +51,7 @@ const corsOrigin = isDevelopment
         cb(null, false);
       }
     }
-  : allowedOrigins.length > 0 ? allowedOrigins : false;
+  : allowedOrigins.length > 0 ? allowedOrigins : [];
 
 if (process.env.NODE_ENV === 'production' && allowedOrigins.length === 0) {
   throw new Error('CORS_ORIGIN must be set in production environment');

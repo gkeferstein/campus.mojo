@@ -5,8 +5,9 @@
  * They are skipped if DATABASE_URL is not set or if imports fail.
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'node:test';
-import { prisma } from '../../lib/prisma.ts';
+import { describe, it, beforeEach, afterEach } from 'node:test';
+import assert from 'node:assert/strict';
+import { prisma } from '../../lib/prisma.js';
 
 // Check if database is available
 const hasDatabase = !!process.env.DATABASE_URL;
@@ -59,12 +60,12 @@ describe('Notification Helpers', { skip: !hasDatabase }, () => {
         },
       });
 
-      expect(notification).toBeDefined();
-      expect(notification.userId).toBe(testUserId);
-      expect(notification.type).toBe('message_new');
-      expect(notification.title).toBe('Test Title');
-      expect(notification.message).toBe('Test Message');
-      expect(notification.actionUrl).toBe('/test-url');
+      assert(notification);
+      assert.strictEqual(notification.userId, testUserId);
+      assert.strictEqual(notification.type, 'message_new');
+      assert.strictEqual(notification.title, 'Test Title');
+      assert.strictEqual(notification.message, 'Test Message');
+      assert.strictEqual(notification.actionUrl, '/test-url');
     });
 
     it('should create notification without actionUrl', async () => {
@@ -77,7 +78,7 @@ describe('Notification Helpers', { skip: !hasDatabase }, () => {
         },
       });
 
-      expect(notification.actionUrl).toBeNull();
+      assert.strictEqual(notification.actionUrl, null);
     });
   });
 });
