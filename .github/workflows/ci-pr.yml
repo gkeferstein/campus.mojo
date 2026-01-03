@@ -66,8 +66,7 @@ jobs:
       - name: Build (for tests)
         working-directory: ${{ matrix.package.path }}
         if: matrix.package.name == 'api'
-        run: npm run build || echo "Build failed, but continuing for tests"
-        continue-on-error: true
+        run: npm run build
 
       - name: Run tests
         working-directory: ${{ matrix.package.path }}
