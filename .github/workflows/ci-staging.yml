@@ -177,6 +177,8 @@ jobs:
             NEXT_PUBLIC_API_URL=https://campus.staging.mojo-institut.de/api
             NEXT_PUBLIC_DIRECTUS_URL=https://campus.staging.mojo-institut.de/cms
             NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || 'pk_test_placeholder' }}
+            NEXT_PUBLIC_MESSAGING_API_URL=https://messaging.mojo-institut.de
+            NEXT_PUBLIC_MESSAGING_WS_URL=wss://messaging.mojo-institut.de
             GIT_COMMIT=${{ github.sha }}
             BUILD_DATE=${{ github.event.head_commit.timestamp || github.run_started_at }}
             GIT_BRANCH=${{ github.ref_name }}
