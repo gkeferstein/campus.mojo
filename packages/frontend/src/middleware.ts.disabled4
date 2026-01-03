@@ -10,9 +10,13 @@ const isPublicRoute = createRouteMatcher([
 ]);
 
 export default clerkMiddleware(async (auth, request) => {
-  if (!isPublicRoute(request)) {
-    await auth.protect();
+  // Allow public routes without authentication
+  if (isPublicRoute(request)) {
+    return;
   }
+  
+  // Protect all other routes
+  await auth.protect();
 });
 
 export const config = {
@@ -23,9 +27,3 @@ export const config = {
     "/(api|trpc)(.*)",
   ],
 };
-
-
-
-
-
-

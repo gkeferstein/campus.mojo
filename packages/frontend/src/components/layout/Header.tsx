@@ -12,6 +12,8 @@ import { useAuth } from '@/providers/AuthProvider';
 import { useRouter } from 'next/navigation';
 import type { Tenant, MojoUser } from '@gkeferstein/design';
 import { useMemo, useEffect, useState, useCallback } from 'react';
+import { MessagingWidget } from '@/components/messaging/MessagingWidget';
+import { MessagingErrorBoundary } from '@/components/messaging/MessagingErrorBoundary';
 
 // Payments.mojo API URL for fetching app entitlements
 // Platform-Konvention: APIs liegen unter /api (nicht /api/v1)
@@ -115,15 +117,23 @@ export function Header() {
   }, [currentTenant]);
 
   return (
-    <MojoTopbar
-      currentApp="campus"
-      user={mojoUser}
-      tenant={currentTenant}
-      tenants={tenants}
-      entitlements={appEntitlements}
-      onTenantChange={handleTenantChange}
-      onLogout={handleLogout}
-      isLoading={isLoadingEntitlements}
-    />
+    <div className="relative w-full">
+      <MojoTopbar
+        currentApp="campus"
+        user={mojoUser}
+        tenant={currentTenant}
+        tenants={tenants}
+        entitlements={appEntitlements}
+        onTenantChange={handleTenantChange}
+        onLogout={handleLogout}
+        isLoading={isLoadingEntitlements}
+      />
+      {/* Messaging Widget - rechts neben Topbar (über absolute Positionierung) */}
+      <div className="absolute right-24 top-1/2 -translate-y-1/2 z-50">
+        <MessagingErrorBoundary>
+          <MessagingWidget />
+        </MessagingErrorBoundary>
+      </div>
+    </div>
   );
 }

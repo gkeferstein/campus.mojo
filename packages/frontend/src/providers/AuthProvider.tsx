@@ -49,13 +49,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setToken(clerkToken);
 
       if (clerkToken) {
-        // Fetch user data from our API
-        const userData = await api.get<User>("/me", clerkToken);
-        setUser(userData);
+        try {
+          // Fetch user data from our API
+          const userData = await api.get<User>("/me", clerkToken);
+          setUser(userData);
+        } catch (apiError) {
+          // API might be unavailable (DB not running, etc.)
+          console.warn("API unavailable, using Clerk user data:", apiError);
+          // Fallback to Clerk user data
+          if (clerkUser) {
+            setUser({
+              id: "", // Will be set once synced
+              clerkUserId: clerkUser.id,
+              email: clerkUser.primaryEmailAddress?.emailAddress || "",
+              firstName: clerkUser.firstName || undefined,
+              lastName: clerkUser.lastName || undefined,
+              avatarUrl: clerkUser.imageUrl || undefined,
+            });
+          }
+        }
       }
     } catch (error) {
-      console.error("Error fetching user:", error);
-      // User might not exist in our DB yet (webhook delay)
+      console.error("Error in auth refresh:", error);
+      // User might not exist in our DB yet (webhook delay) or API unavailable
       // Create a basic user object from Clerk data
       if (clerkUser) {
         setUser({

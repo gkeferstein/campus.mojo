@@ -12,6 +12,11 @@ import { lessonsRoutes } from './routes/lessons.js';
 import { quizRoutes } from './routes/quiz.js';
 import { userVariablesRoutes } from './routes/user-variables.js';
 import { webhooksRoutes } from './routes/webhooks.js';
+import { checkInRoutes } from './routes/checkin.js';
+import { journeyRoutes } from './routes/journey.js';
+import { communityRoutes } from './routes/community.js';
+import { workshopRoutes } from './routes/workshops.js';
+import { notificationRoutes } from './routes/notifications.js';
 import { errorHandler } from './middleware/error-handler.js';
 import { logger } from './lib/logger.js';
 import { validateEnvironment } from './lib/env-validation.js';
@@ -34,18 +39,29 @@ const fastify = Fastify({
 
 // Register plugins - CORS configuration
 const allowedOrigins = process.env.CORS_ORIGIN?.split(',').filter(Boolean) || [];
+
+// In development, allow all localhost origins
+const isDevelopment = process.env.NODE_ENV !== 'production';
+const corsOrigin: string | string[] | ((origin: string | undefined, cb: (err: Error | null, origin: string | boolean) => void) => void) = isDevelopment 
+  ? (origin: string | undefined, cb: (err: Error | null, origin: string | boolean) => void) => {
+      // Allow all localhost origins in development
+      if (!origin || origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
+        cb(null, true);
+      } else {
+        cb(null, false);
+      }
+    }
+  : allowedOrigins.length > 0 ? allowedOrigins : [];
+
 if (process.env.NODE_ENV === 'production' && allowedOrigins.length === 0) {
   throw new Error('CORS_ORIGIN must be set in production environment');
 }
 
-// In development, allow all localhost origins
-const corsOrigin = process.env.NODE_ENV === 'development' 
-  ? true  // Allow all origins in development
-  : allowedOrigins.length > 0 ? allowedOrigins : false;
-
 await fastify.register(cors, {
   origin: corsOrigin,
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-ID'],
 });
 
 await fastify.register(helmet, {
@@ -87,6 +103,13 @@ await fastify.register(lessonsRoutes);
 await fastify.register(quizRoutes);
 await fastify.register(userVariablesRoutes);
 await fastify.register(webhooksRoutes);
+
+// B2C LEBENSENERGIE Journey Routes
+await fastify.register(checkInRoutes);
+await fastify.register(journeyRoutes);
+await fastify.register(communityRoutes);
+await fastify.register(workshopRoutes);
+await fastify.register(notificationRoutes);
 
 // Start server
 const start = async () => {

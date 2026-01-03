@@ -19,6 +19,10 @@ import {
   Heart,
   Dumbbell,
   Wallet,
+  Zap,
+  Users,
+  Video,
+  Bell,
 } from 'lucide-react';
 
 export function Sidebar() {
@@ -37,10 +41,10 @@ export function Sidebar() {
           href: '/dashboard',
         },
         {
-          id: 'courses',
-          label: 'Meine Kurse',
-          icon: <GraduationCap className="h-5 w-5" />,
-          href: '/dashboard',
+          id: 'checkin',
+          label: 'LEBENSENERGIE Check-in',
+          icon: <Zap className="h-5 w-5" />,
+          href: '/onboarding/checkin',
         },
       ],
     },
@@ -49,22 +53,46 @@ export function Sidebar() {
       title: 'Lernen',
       items: [
         {
-          id: 'library',
-          label: 'Kurskatalog',
+          id: 'modules',
+          label: 'LEBENSENERGIE Toolbox',
           icon: <BookOpen className="h-5 w-5" />,
+          href: '/modules',
+        },
+        {
+          id: 'library',
+          label: 'Alle Kurse',
+          icon: <GraduationCap className="h-5 w-5" />,
           href: '/catalog',
         },
         {
-          id: 'certificates',
-          label: 'Zertifikate',
-          icon: <Award className="h-5 w-5" />,
-          href: '/certificates',
-        },
-        {
           id: 'progress',
-          label: 'Fortschritt',
+          label: 'Meine Journey',
           icon: <BarChart3 className="h-5 w-5" />,
           href: '/progress',
+        },
+      ],
+    },
+    {
+      id: 'community',
+      title: 'Community',
+      items: [
+        {
+          id: 'feed',
+          label: 'Community Feed',
+          icon: <Users className="h-5 w-5" />,
+          href: '/community',
+        },
+        {
+          id: 'workshops',
+          label: 'Live Workshops',
+          icon: <Video className="h-5 w-5" />,
+          href: '/workshops',
+        },
+        {
+          id: 'notifications',
+          label: 'Benachrichtigungen',
+          icon: <Bell className="h-5 w-5" />,
+          href: '/notifications',
         },
       ],
     },

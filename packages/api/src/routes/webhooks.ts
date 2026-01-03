@@ -2,7 +2,14 @@ import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { verifyWebhook } from '../middleware/webhook-verify.js';
 import { prisma } from '../lib/prisma.js';
+import { logger } from '../lib/logger.js';
+import {
+  createMessageNotification,
+  createMessageReplyNotification,
+  createContactRequestNotification,
+} from './notifications.js';
 
+// Original payment webhook for course purchases
 const paymentWebhookSchema = z.object({
   event: z.enum(['payment.completed', 'payment.refunded', 'subscription.cancelled']),
   data: z.object({
@@ -11,6 +18,33 @@ const paymentWebhookSchema = z.object({
     courseId: z.string(),
     paymentId: z.string().optional(),
     validUntil: z.string().datetime().optional(),
+  }),
+});
+
+// B2C Subscription webhook schema (LEBENSENERGIE / RESILIENZ)
+const subscriptionWebhookSchema = z.object({
+  event: z.enum([
+    'subscription.created',
+    'subscription.renewed',
+    'subscription.upgraded',
+    'subscription.downgraded',
+    'subscription.cancelled',
+    'subscription.expired',
+    'trial.started',
+    'trial.ended',
+  ]),
+  data: z.object({
+    userId: z.string().uuid().optional(),
+    email: z.string().email(),
+    tier: z.enum(['lebensenergie', 'resilienz']),
+    paymentId: z.string().optional(),
+    subscriptionId: z.string().optional(),
+    amount: z.number().optional(), // in cents
+    currency: z.string().default('EUR'),
+    interval: z.enum(['monthly', 'yearly', 'triennial']).optional(),
+    validFrom: z.string().datetime().optional(),
+    validUntil: z.string().datetime().optional(),
+    trialEndsAt: z.string().datetime().optional(),
   }),
 });
 
@@ -119,6 +153,168 @@ export async function webhooksRoutes(fastify: FastifyInstance): Promise<void> {
     }
   });
 
+  // POST /webhooks/subscription - Handle B2C subscription webhooks (LEBENSENERGIE / RESILIENZ)
+  fastify.post('/webhooks/subscription', {
+    preHandler: [verifyWebhook],
+  }, async (request, reply) => {
+    const body = subscriptionWebhookSchema.parse(request.body);
+
+    // Log webhook event
+    const event = await prisma.webhookEvent.create({
+      data: {
+        source: 'subscription',
+        eventType: body.event,
+        payload: body as object,
+      },
+    });
+
+    try {
+      // Find user by email or userId
+      let user = body.data.userId 
+        ? await prisma.user.findUnique({ where: { id: body.data.userId } })
+        : await prisma.user.findUnique({ where: { email: body.data.email } });
+
+      if (!user) {
+        await prisma.webhookEvent.update({
+          where: { id: event.id },
+          data: { error: 'User not found' },
+        });
+        return reply.status(400).send({ error: 'User not found' });
+      }
+
+      // Get or create journey
+      let journey = await prisma.userJourney.findUnique({
+        where: { userId: user.id },
+      });
+
+      if (!journey) {
+        journey = await prisma.userJourney.create({
+          data: { userId: user.id, state: 'onboarding_start' },
+        });
+      }
+
+      switch (body.event) {
+        case 'subscription.created':
+        case 'subscription.renewed': {
+          // Activate subscription
+          const state = body.data.tier === 'resilienz' ? 'resilienz_active' : 'lebensenergie_active';
+          
+          await prisma.userJourney.update({
+            where: { userId: user.id },
+            data: {
+              state,
+              subscriptionTier: body.data.tier,
+              subscriptionStartAt: body.data.validFrom ? new Date(body.data.validFrom) : new Date(),
+              subscriptionEndsAt: body.data.validUntil ? new Date(body.data.validUntil) : null,
+            },
+          });
+
+          logger.info({ userId: user.id, tier: body.data.tier }, 'Subscription activated');
+          break;
+        }
+
+        case 'subscription.upgraded': {
+          // Upgrade to RESILIENZ
+          await prisma.userJourney.update({
+            where: { userId: user.id },
+            data: {
+              state: 'resilienz_active',
+              subscriptionTier: 'resilienz',
+              subscriptionEndsAt: body.data.validUntil ? new Date(body.data.validUntil) : null,
+            },
+          });
+
+          // Award upgrade badge
+          await prisma.userBadge.upsert({
+            where: { userId_badgeSlug: { userId: user.id, badgeSlug: 'resilienz-upgrade' } },
+            create: { userId: user.id, badgeSlug: 'resilienz-upgrade' },
+            update: {},
+          });
+
+          logger.info({ userId: user.id }, 'Subscription upgraded to RESILIENZ');
+          break;
+        }
+
+        case 'subscription.downgraded': {
+          // Downgrade to LEBENSENERGIE
+          await prisma.userJourney.update({
+            where: { userId: user.id },
+            data: {
+              state: 'lebensenergie_active',
+              subscriptionTier: 'lebensenergie',
+              subscriptionEndsAt: body.data.validUntil ? new Date(body.data.validUntil) : null,
+            },
+          });
+
+          logger.info({ userId: user.id }, 'Subscription downgraded to LEBENSENERGIE');
+          break;
+        }
+
+        case 'subscription.cancelled':
+        case 'subscription.expired': {
+          // Deactivate subscription - user keeps access until validUntil
+          await prisma.userJourney.update({
+            where: { userId: user.id },
+            data: {
+              // Keep current state until expiry, then check via cron/middleware
+              subscriptionEndsAt: body.data.validUntil ? new Date(body.data.validUntil) : new Date(),
+            },
+          });
+
+          logger.info({ userId: user.id, tier: body.data.tier }, 'Subscription cancelled/expired');
+          break;
+        }
+
+        case 'trial.started': {
+          // Start 7-day trial
+          const trialEndsAt = body.data.trialEndsAt 
+            ? new Date(body.data.trialEndsAt)
+            : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+          await prisma.userJourney.update({
+            where: { userId: user.id },
+            data: {
+              state: 'trial_active',
+              trialStartedAt: new Date(),
+              trialEndsAt,
+            },
+          });
+
+          logger.info({ userId: user.id, trialEndsAt }, 'Trial started');
+          break;
+        }
+
+        case 'trial.ended': {
+          // Trial ended without conversion
+          await prisma.userJourney.update({
+            where: { userId: user.id },
+            data: {
+              state: journey.checkInsCompleted >= 3 ? 'onboarding_first_module' : 'onboarding_checkin',
+              trialEndsAt: new Date(),
+            },
+          });
+
+          logger.info({ userId: user.id }, 'Trial ended');
+          break;
+        }
+      }
+
+      // Mark as processed
+      await prisma.webhookEvent.update({
+        where: { id: event.id },
+        data: { processedAt: new Date() },
+      });
+
+      return reply.send({ success: true, eventId: event.id });
+    } catch (error) {
+      await prisma.webhookEvent.update({
+        where: { id: event.id },
+        data: { error: String(error) },
+      });
+      throw error;
+    }
+  });
+
   // POST /webhooks/crm - Handle CRM webhooks
   fastify.post('/webhooks/crm', {
     preHandler: [verifyWebhook],
@@ -205,6 +401,110 @@ export async function webhooksRoutes(fastify: FastifyInstance): Promise<void> {
               },
             });
           }
+          break;
+        }
+      }
+
+      // Mark as processed
+      await prisma.webhookEvent.update({
+        where: { id: event.id },
+        data: { processedAt: new Date() },
+      });
+
+      return reply.send({ success: true, eventId: event.id });
+    } catch (error) {
+      await prisma.webhookEvent.update({
+        where: { id: event.id },
+        data: { error: String(error) },
+      });
+      throw error;
+    }
+  });
+
+  // POST /webhooks/messaging - Handle messaging.mojo webhooks
+  const messagingWebhookSchema = z.object({
+    event: z.enum(['message.new', 'message.reply', 'contact.request']),
+    data: z.object({
+      userId: z.string().uuid(), // Recipient user ID
+      conversationId: z.string().optional(),
+      senderId: z.string().uuid().optional(),
+      senderName: z.string().optional(),
+      messagePreview: z.string().optional(),
+      conversationType: z.enum(['DIRECT', 'GROUP', 'SUPPORT']).optional(),
+      conversationName: z.string().optional(),
+      requesterName: z.string().optional(),
+      message: z.string().optional(),
+    }),
+  });
+
+  fastify.post('/webhooks/messaging', {
+    preHandler: [verifyWebhook],
+  }, async (request, reply) => {
+    const body = messagingWebhookSchema.parse(request.body);
+
+    // Log webhook event
+    const event = await prisma.webhookEvent.create({
+      data: {
+        source: 'messaging',
+        eventType: body.event,
+        payload: body as object,
+      },
+    });
+
+    try {
+      const { userId, conversationId, senderId, senderName, messagePreview, conversationType, conversationName, requesterName, message } = body.data;
+
+      // Verify user exists
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+      });
+
+      if (!user) {
+        await prisma.webhookEvent.update({
+          where: { id: event.id },
+          data: { error: 'User not found' },
+        });
+        return reply.status(400).send({ error: 'User not found' });
+      }
+
+      switch (body.event) {
+        case 'message.new': {
+          if (!conversationId || !senderName || !messagePreview || !conversationType) {
+            throw new Error('Missing required fields for message.new event');
+          }
+          await createMessageNotification(
+            userId,
+            conversationId,
+            senderName,
+            messagePreview,
+            conversationType
+          );
+          break;
+        }
+
+        case 'message.reply': {
+          if (!conversationId || !senderName || !messagePreview) {
+            throw new Error('Missing required fields for message.reply event');
+          }
+          await createMessageReplyNotification(
+            userId,
+            conversationId,
+            senderName,
+            messagePreview,
+            conversationName
+          );
+          break;
+        }
+
+        case 'contact.request': {
+          if (!requesterName) {
+            throw new Error('Missing required fields for contact.request event');
+          }
+          await createContactRequestNotification(
+            userId,
+            requesterName,
+            message
+          );
           break;
         }
       }
